@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusAI Assessment Wizard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="wizard-body">
+    <!-- Wizard Header -->
+    <header class="wizard-header">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo">🔗 NexusAI</span>
+                <span class="wizard-title">AI Compliance Assessment</span>
+            </div>
+            <div class="wizard-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span class="progress-text" id="progressText">Step 1 of 4</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Wizard Content -->
+    <main class="wizard-main">
+        <div class="wizard-container">
+            
+            <!-- Step 1: Persona Selection -->
+            <div class="wizard-step active" id="step1">
+                <div class="step-content">
+                    <h2>Choose Your Path</h2>
+                    <p>Select your role to get personalized compliance guidance</p>
+                    
+                    <div class="persona-grid">
+                        <div class="persona-card" data-persona="entrepreneur">
+                            <div class="persona-icon">🚀</div>
+                            <h3>AI Entrepreneur</h3>
+                            <p>Turn compliance into fundraising advantage</p>
+                            <div class="persona-value">78% higher Series A success</div>
+                            <div class="persona-focus">Focus: Investor readiness</div>
+                        </div>
+                        
+                        <div class="persona-card" data-persona="consultant">
+                            <div class="persona-icon">🎯</div>
+                            <h3>AI Consultant</h3>
+                            <p>Protect yourself from client liability</p>
+                            <div class="persona-value">$50M+ fines prevented</div>
+                            <div class="persona-focus">Focus: Risk assessment</div>
+                        </div>
+                        
+                        <div class="persona-card" data-persona="seller">
+                            <div class="persona-icon">💼</div>
+                            <h3>SMB AI Seller</h3>
+                            <p>Enable enterprise sales with compliance</p>
+                            <div class="persona-value">60% faster deal closure</div>
+                            <div class="persona-focus">Focus: Sales enablement</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Company Details -->
+            <div class="wizard-step" id="step2">
+                <div class="step-content">
+                    <h2>About Your Company</h2>
+                    <div id="personaGuidance" class="persona-guidance"></div>
+                    
+                    <form class="wizard-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Company Name</label>
+                                <input type="text" name="company_name" placeholder="Enter company name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Industry</label>
+                                <select name="industry" required>
+                                    <option value="">Select industry...</option>
+                                    <option value="healthcare">Healthcare & Life Sciences</option>
+                                    <option value="finance">Financial Services</option>
+                                    <option value="hr">Human Resources</option>
+                                    <option value="saas">B2B SaaS</option>
+                                    <option value="retail">Retail & E-commerce</option>
+                                    <option value="education">Education</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Company Stage</label>
+                                <select name="company_stage" required>
+                                    <option value="">Select stage...</option>
+                                    <option value="idea">Idea stage</option>
+                                    <option value="mvp">MVP/Beta</option>
+                                    <option value="early">Early revenue</option>
+                                    <option value="growth">Growth stage</option>
+                                    <option value="scale">Scale stage</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Team Size</label>
+                                <select name="team_size" required>
+                                    <option value="">Select size...</option>
+                                    <option value="solo">1 person</option>
+                                    <option value="small">2-10 people</option>
+                                    <option value="medium">11-50 people</option>
+                                    <option value="large">50+ people</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Step 3: AI System Details -->
+            <div class="wizard-step" id="step3">
+                <div class="step-content">
+                    <h2>Your AI System</h2>
+                    <div id="systemGuidance" class="persona-guidance"></div>
+                    
+                    <form class="wizard-form">
+                        <div class="form-group">
+                            <label>AI System Description</label>
+                            <textarea name="ai_description" rows="4" placeholder="Describe your AI system..." required></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Primary Function</label>
+                                <select name="ai_type" required>
+                                    <option value="">Select function...</option>
+                                    <option value="recommendation">Recommendations</option>
+                                    <option value="classification">Classification/Scoring</option>
+                                    <option value="prediction">Predictions</option>
+                                    <option value="automation">Process Automation</option>
+                                    <option value="chatbot">Conversational AI</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Data Sensitivity</label>
+                                <select name="data_sensitivity" required>
+                                    <option value="">Select level...</option>
+                                    <option value="public">Public data only</option>
+                                    <option value="personal">Personal information</option>
+                                    <option value="sensitive">Sensitive data</option>
+                                    <option value="regulated">Regulated data (health, finance)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Target Markets</label>
+                            <div class="checkbox-grid">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="markets" value="us">
+                                    <span>United States</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="markets" value="eu">
+                                    <span>European Union</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="markets" value="global">
+                                    <span>Global</span>
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Step 4: Analysis Results -->
+            <div class="wizard-step" id="step4">
+                <div class="step-content">
+                    <div class="analysis-loading" id="analysisLoading">
+                        <div class="loading-animation">
+                            <div class="loading-spinner"></div>
+                            <h3>Analyzing Your AI System</h3>
+                            <p>Our AI agents are evaluating compliance requirements...</p>
+                            
+                            <div class="analysis-steps">
+                                <div class="analysis-step active">
+                                    <i class="fas fa-search"></i>
+                                    <span>Scanning regulations</span>
+                                </div>
+                                <div class="analysis-step">
+                                    <i class="fas fa-calculator"></i>
+                                    <span>Calculating risk scores</span>
+                                </div>
+                                <div class="analysis-step">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>Generating insights</span>
+                                </div>
+                                <div class="analysis-step">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>Creating recommendations</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-results" id="analysisResults" style="display: none;">
+                        <div class="results-header">
+                            <h2>Analysis Complete</h2>
+                            <div id="personaSpecificMessage"></div>
+                        </div>
+                        
+                        <div class="results-summary" id="resultsSummary">
+                            <!-- Populated by JS -->
+                        </div>
+                        
+                        <div class="results-actions">
+                            <button class="btn-primary btn-large" onclick="downloadReport()">
+                                <i class="fas fa-download"></i> Download Full Report
+                            </button>
+                            <button class="btn-secondary" onclick="goToDashboard()">
+                                <i class="fas fa-tachometer-alt"></i> View Dashboard
+                            </button>
+                            <button class="btn-secondary" onclick="startNewAssessment()">
+                                <i class="fas fa-refresh"></i> New Assessment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="wizard-navigation">
+                <button class="btn-secondary" id="prevBtn" onclick="previousStep()" style="display: none;">
+                    <i class="fas fa-arrow-left"></i> Previous
+                </button>
+                <button class="btn-primary" id="nextBtn" onclick="nextStep()">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+                <button class="btn-primary" id="analyzeBtn" onclick="runAnalysis()" style="display: none;">
+                    <i class="fas fa-play"></i> Analyze System
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/wizard.js') }}"></script>
+</body>
+</html>
