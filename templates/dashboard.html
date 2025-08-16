@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusAI Dashboard - Product Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="dashboard-body">
+    <!-- Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="dashboard-nav">
+            <div class="nav-brand">
+                <span class="logo">🔗 NexusAI</span>
+                <span class="dashboard-title">Product Intelligence Dashboard</span>
+            </div>
+            <div class="nav-actions">
+                <button class="btn-primary" onclick="startNewAssessment()">
+                    <i class="fas fa-plus"></i> New Assessment
+                </button>
+                <a href="/" class="btn-secondary">Home</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            
+            <!-- Persona Analytics -->
+            <div class="persona-analytics">
+                <h2><i class="fas fa-users"></i> Persona Performance Metrics</h2>
+                <div class="persona-metrics-grid">
+                    <div class="persona-metric-card entrepreneur">
+                        <div class="metric-header">
+                            <span class="metric-icon">🚀</span>
+                            <h3>Entrepreneurs</h3>
+                        </div>
+                        <div class="metric-stats">
+                            <div class="stat">
+                                <span class="stat-value">31%</span>
+                                <span class="stat-label">Conversion Rate</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">$12K</span>
+                                <span class="stat-label">Avg LTV</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">78%</span>
+                                <span class="stat-label">12M Retention</span>
+                            </div>
+                        </div>
+                        <div class="metric-insight">
+                            Highest LTV, Series A+ companies show 3x value
+                        </div>
+                    </div>
+                    
+                    <div class="persona-metric-card consultant">
+                        <div class="metric-header">
+                            <span class="metric-icon">🎯</span>
+                            <h3>Consultants</h3>
+                        </div>
+                        <div class="metric-stats">
+                            <div class="stat">
+                                <span class="stat-value">35%</span>
+                                <span class="stat-label">Conversion Rate</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">$8.5K</span>
+                                <span class="stat-label">Avg LTV</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">82%</span>
+                                <span class="stat-label">12M Retention</span>
+                            </div>
+                        </div>
+                        <div class="metric-insight">
+                            Highest retention, recurring compliance needs
+                        </div>
+                    </div>
+                    
+                    <div class="persona-metric-card seller">
+                        <div class="metric-header">
+                            <span class="metric-icon">💼</span>
+                            <h3>Sellers</h3>
+                        </div>
+                        <div class="metric-stats">
+                            <div class="stat">
+                                <span class="stat-value">25%</span>
+                                <span class="stat-label">Conversion Rate</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">$4.2K</span>
+                                <span class="stat-label">Avg LTV</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">65%</span>
+                                <span class="stat-label">12M Retention</span>
+                            </div>
+                        </div>
+                        <div class="metric-insight">
+                            Growth opportunity, price-sensitive segment
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Intelligence Grid -->
+            <div class="dashboard-grid">
+                
+                <!-- A/B Test Results -->
+                <div class="dashboard-panel ab-testing">
+                    <h2><i class="fas fa-flask"></i> A/B Test Results</h2>
+                    <div class="ab-tests">
+                        <div class="ab-test-item winner">
+                            <div class="test-header">
+                                <h4>Compliance Score Visualization</h4>
+                                <span class="test-status">Winner: 40% lift</span>
+                            </div>
+                            <div class="test-metrics">
+                                <div class="test-variant">
+                                    <span class="variant-label">Control (text only)</span>
+                                    <span class="variant-result">23% conversion</span>
+                                </div>
+                                <div class="test-variant">
+                                    <span class="variant-label">Test (visual score)</span>
+                                    <span class="variant-result">32% conversion</span>
+                                </div>
+                            </div>
+                            <div class="test-insight">
+                                Visual risk meters significantly increase user confidence
+                            </div>
+                        </div>
+                        
+                        <div class="ab-test-item running">
+                            <div class="test-header">
+                                <h4>Persona-Specific CTAs</h4>
+                                <span class="test-status">Running: 67% complete</span>
+                            </div>
+                            <div class="test-metrics">
+                                <div class="test-variant">
+                                    <span class="variant-label">Generic CTA</span>
+                                    <span class="variant-result">28% conversion</span>
+                                </div>
+                                <div class="test-variant">
+                                    <span class="variant-label">Persona CTA</span>
+                                    <span class="variant-result">31% conversion</span>
+                                </div>
+                            </div>
+                            <div class="test-insight">
+                                Early signal: personalized messaging improves conversion
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Research Insights -->
+                <div class="dashboard-panel research-insights">
+                    <h2><i class="fas fa-microscope"></i> User Research Insights</h2>
+                    <div class="insights-list">
+                        <div class="insight-item high-impact">
+                            <div class="insight-header">
+                                <span class="insight-type">Problem Validation</span>
+                                <span class="insight-confidence">95% confidence</span>
+                            </div>
+                            <blockquote>
+                                "73% of AI founders fear compliance will kill fundraising"
+                            </blockquote>
+                            <div class="insight-source">Survey: 150 AI startup founders</div>
+                            <div class="insight-action">
+                                ✅ Led to entrepreneur-focused positioning
+                            </div>
+                        </div>
+                        
+                        <div class="insight-item medium-impact">
+                            <div class="insight-header">
+                                <span class="insight-type">Feature Validation</span>
+                                <span class="insight-confidence">88% confidence</span>
+                            </div>
+                            <blockquote>
+                                "I need compliance score benchmarking vs competitors"
+                            </blockquote>
+                            <div class="insight-source">Interview: 12 Series A founders</div>
+                            <div class="insight-action">
+                                🚧 Roadmap: Competitive benchmarking Q2
+                            </div>
+                        </div>
+                        
+                        <div class="insight-item validation">
+                            <div class="insight-header">
+                                <span class="insight-type">UX Insight</span>
+                                <span class="insight-confidence">92% confidence</span>
+                            </div>
+                            <blockquote>
+                                "The compliance score gave me confidence to pitch VCs"
+                            </blockquote>
+                            <div class="insight-source">User test: Score visualization</div>
+                            <div class="insight-action">
+                                ✅ Increased prominence in dashboard
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Metrics -->
+                <div class="dashboard-panel business-metrics">
+                    <h2><i class="fas fa-chart-bar"></i> Business Intelligence</h2>
+                    <div class="metrics-breakdown">
+                        <div class="metric-category">
+                            <h4>Growth Metrics</h4>
+                            <div class="metric-item">
+                                <span class="metric-label">Monthly Recurring Revenue</span>
+                                <span class="metric-value">$127K</span>
+                                <span class="metric-change positive">+23% MoM</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">New Customer Acquisition</span>
+                                <span class="metric-value">89</span>
+                                <span class="metric-change positive">+15% MoM</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Customer Acquisition Cost</span>
+                                <span class="metric-value">$340</span>
+                                <span class="metric-change negative">-8% MoM</span>
+                            </div>
+                        </div>
+                        
+                        <div class="metric-category">
+                            <h4>Product Metrics</h4>
+                            <div class="metric-item">
+                                <span class="metric-label">Feature Adoption: Risk Assessment</span>
+                                <span class="metric-value">94%</span>
+                                <span class="metric-trend">Core feature</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Feature Adoption: PDF Reports</span>
+                                <span class="metric-value">78%</span>
+                                <span class="metric-trend">High value</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Time to First Value</span>
+                                <span class="metric-value">8 min</span>
+                                <span class="metric-change positive">-2 min MoM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Assessment Panel -->
+                <div class="dashboard-panel assessment-panel">
+                    <h2><i class="fas fa-tachometer-alt"></i> Quick Assessment</h2>
+                    <p>Test the product with different personas</p>
+                    
+                    <form id="quickAssessmentForm" class="quick-form">
+                        <div class="form-group">
+                            <label>Persona</label>
+                            <select name="persona" required>
+                                <option value="entrepreneur">AI Entrepreneur</option>
+                                <option value="consultant">AI Consultant</option>
+                                <option value="seller">SMB AI Seller</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Industry</label>
+                            <select name="industry" required>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="finance">Financial Services</option>
+                                <option value="hr">Human Resources</option>
+                                <option value="saas">B2B SaaS</option>
+                                <option value="retail">Retail</option>
+                            </select>
+                        </div>
+                        
+                        <div class="demo-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="useDemoData" name="use_demo" checked>
+                                <span class="toggle-slider"></span>
+                                Use realistic demo scenarios
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary btn-block">
+                            <i class="fas fa-search"></i> Run Persona Analysis
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="dashboard-panel results-panel" id="resultsPanel" style="display: none;">
+                    <h2><i class="fas fa-chart-line"></i> Analysis Results</h2>
+                    
+                    <div class="persona-result" id="personaResult">
+                        <!-- Results populated by JS -->
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <button class="btn-primary" onclick="downloadReport()">
+                            <i class="fas fa-download"></i> Download Report
+                        </button>
+                        <button class="btn-secondary" onclick="viewFullDashboard()">
+                            <i class="fas fa-expand"></i> Detailed Analysis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Market Position -->
+                <div class="dashboard-panel market-position">
+                    <h2><i class="fas fa-target"></i> Market Position</h2>
+                    <div class="position-analysis">
+                        <div class="position-metric">
+                            <h4>TAM Penetration</h4>
+                            <div class="penetration-bar">
+                                <div class="penetration-fill" style="width: 0.8%"></div>
+                            </div>
+                            <span class="penetration-value">0.8% of $12.3B market</span>
+                        </div>
+                        
+                        <div class="competitive-advantages">
+                            <h4>Competitive Advantages</h4>
+                            <ul>
+                                <li>First mover in entrepreneur-focused compliance</li>
+                                <li>3x faster than legal firms ($299 vs $500/hr)</li>
+                                <li>AI-specific expertise vs generic tools</li>
+                                <li>Outcome-focused (fundraising, sales) vs checklist</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="growth-levers">
+                            <h4>Growth Opportunities</h4>
+                            <ul>
+                                <li>Geographic expansion: EU market (3x larger)</li>
+                                <li>Vertical expansion: Fintech, Healthcare specialization</li>
+                                <li>Product expansion: Ongoing monitoring, API</li>
+                                <li>Partner channel: VC firms, accelerators</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Analyzing with AI agents...</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+</body>
+</html>
