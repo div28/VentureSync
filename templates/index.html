@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusAI - AI Compliance Intelligence for Entrepreneurs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo">🔗 NexusAI</span>
+                <span class="tagline">Compliance Intelligence</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#personas">Solutions</a>
+                <a href="#analytics">Analytics</a>
+                <a href="#market-intelligence">Market Intel</a>
+                <a href="/dashboard" class="btn-primary">Dashboard</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section with Persona Selection -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Turn AI Compliance Into <span class="highlight">Competitive Advantage</span></h1>
+                <p class="hero-subtitle">Choose your path: Strategic compliance intelligence for entrepreneurs, consultants, and sellers</p>
+                
+                <!-- Persona Selection -->
+                <div class="persona-selector">
+                    <div class="persona-option" data-persona="entrepreneur">
+                        <div class="persona-icon">🚀</div>
+                        <h3>AI Entrepreneurs</h3>
+                        <p>Turn compliance into fundraising advantage</p>
+                        <div class="persona-stat">78% higher Series A success</div>
+                    </div>
+                    <div class="persona-option" data-persona="consultant">
+                        <div class="persona-icon">🎯</div>
+                        <h3>AI Consultants</h3>
+                        <p>Avoid $2M+ client liability exposure</p>
+                        <div class="persona-stat">$50M+ in fines prevented</div>
+                    </div>
+                    <div class="persona-option" data-persona="seller">
+                        <div class="persona-icon">💼</div>
+                        <h3>SMB AI Sellers</h3>
+                        <p>Enable enterprise sales with compliance</p>
+                        <div class="persona-stat">60% faster deal closure</div>
+                    </div>
+                </div>
+
+                <div class="hero-cta">
+                    <a href="/wizard" class="btn-primary btn-large" id="startAssessment">Start Free Assessment</a>
+                    <a href="#analytics" class="btn-secondary">View Analytics</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Market Intelligence Section -->
+    <section id="market-intelligence" class="market-section">
+        <div class="container">
+            <h2>Market Intelligence Dashboard</h2>
+            <p>Data-driven insights into the AI compliance market</p>
+            
+            <div class="market-grid">
+                <div class="market-card tam">
+                    <h3>Total Addressable Market</h3>
+                    <div class="market-value">$12.3B</div>
+                    <div class="market-growth">+34% YoY Growth</div>
+                    <ul>
+                        <li>47K AI startups globally</li>
+                        <li>$45K average compliance spend</li>
+                        <li>Regulatory complexity increasing</li>
+                    </ul>
+                </div>
+                
+                <div class="market-card competitive">
+                    <h3>Competitive Landscape</h3>
+                    <div class="competitor-analysis">
+                        <div class="competitor">
+                            <strong>Vanta:</strong> Enterprise only, $2K+/month
+                        </div>
+                        <div class="competitor">
+                            <strong>Legal Firms:</strong> $500/hr, slow delivery
+                        </div>
+                        <div class="competitor nexus">
+                            <strong>NexusAI:</strong> Entrepreneur-focused, $299/month
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="market-card opportunity">
+                    <h3>Market Opportunity</h3>
+                    <div class="opportunity-metrics">
+                        <div class="metric">
+                            <span class="metric-value">$2.1B</span>
+                            <span class="metric-label">Serviceable Market</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">$210M</span>
+                            <span class="metric-label">Obtainable (5-year)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Analytics Dashboard Preview -->
+    <section id="analytics" class="analytics-section">
+        <div class="container">
+            <h2>Product Analytics Dashboard</h2>
+            <p>Data-driven product decisions and persona optimization</p>
+            
+            <div class="analytics-grid">
+                <div class="analytics-card conversion">
+                    <h3>Conversion by Persona</h3>
+                    <div class="conversion-chart">
+                        <div class="persona-metric">
+                            <span class="persona-name">Consultants</span>
+                            <div class="conversion-bar">
+                                <div class="conversion-fill" style="width: 35%"></div>
+                            </div>
+                            <span class="conversion-rate">35%</span>
+                        </div>
+                        <div class="persona-metric">
+                            <span class="persona-name">Entrepreneurs</span>
+                            <div class="conversion-bar">
+                                <div class="conversion-fill" style="width: 31%"></div>
+                            </div>
+                            <span class="conversion-rate">31%</span>
+                        </div>
+                        <div class="persona-metric">
+                            <span class="persona-name">Sellers</span>
+                            <div class="conversion-bar">
+                                <div class="conversion-fill" style="width: 25%"></div>
+                            </div>
+                            <span class="conversion-rate">25%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analytics-card ltv">
+                    <h3>Lifetime Value Analysis</h3>
+                    <div class="ltv-breakdown">
+                        <div class="ltv-item">
+                            <span class="ltv-persona">Entrepreneurs</span>
+                            <span class="ltv-value">$12,000</span>
+                            <span class="ltv-retention">78% retention</span>
+                        </div>
+                        <div class="ltv-item">
+                            <span class="ltv-persona">Consultants</span>
+                            <span class="ltv-value">$8,500</span>
+                            <span class="ltv-retention">82% retention</span>
+                        </div>
+                        <div class="ltv-item">
+                            <span class="ltv-persona">Sellers</span>
+                            <span class="ltv-value">$4,200</span>
+                            <span class="ltv-retention">65% retention</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analytics-card insights">
+                    <h3>Key Product Insights</h3>
+                    <ul class="insights-list">
+                        <li>Entrepreneurs convert 2.3x faster with compliance score visualization</li>
+                        <li>Consultants show highest retention due to ongoing risk monitoring</li>
+                        <li>Healthcare startups have 67% upgrade rate within 30 days</li>
+                        <li>Series A companies show 3x higher LTV than pre-seed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Scenarios Carousel -->
+    <section id="personas" class="scenarios-section">
+        <div class="container">
+            <h2>Real-World Compliance Scenarios by Persona</h2>
+            <p>See how different users navigate compliance challenges</p>
+            
+            <!-- Persona Tabs -->
+            <div class="persona-tabs">
+                <button class="persona-tab active" data-persona="entrepreneur">Entrepreneurs</button>
+                <button class="persona-tab" data-persona="consultant">Consultants</button>
+                <button class="persona-tab" data-persona="seller">Sellers</button>
+            </div>
+            
+            <div class="carousel-container">
+                <div class="carousel-track" id="scenarioCarousel">
+                    <!-- Scenarios populated by JS -->
+                </div>
+                <button class="carousel-btn prev" id="prevBtn">‹</button>
+                <button class="carousel-btn next" id="nextBtn">›</button>
+            </div>
+            
+            <div class="carousel-indicators" id="carouselIndicators"></div>
+        </div>
+    </section>
+
+    <!-- User Research Integration -->
+    <section class="research-section">
+        <div class="container">
+            <h2>User Research Insights</h2>
+            <p>How we validated the problem and designed the solution</p>
+            
+            <div class="research-grid">
+                <div class="research-card problem">
+                    <h3>Problem Validation</h3>
+                    <blockquote>
+                        "73% of AI founders fear compliance will kill their fundraising prospects"
+                    </blockquote>
+                    <div class="research-source">— Survey of 150 AI startup founders</div>
+                </div>
+                
+                <div class="research-card solution">
+                    <h3>Solution Design</h3>
+                    <blockquote>
+                        "I need compliance to be a competitive advantage, not just a checkbox"
+                    </blockquote>
+                    <div class="research-source">— Series A founder interview</div>
+                </div>
+                
+                <div class="research-card iteration">
+                    <h3>Design Iteration</h3>
+                    <blockquote>
+                        "The compliance score visualization increased my confidence by 10x"
+                    </blockquote>
+                    <div class="research-source">— A/B test result, 40% conversion lift</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing-section">
+        <div class="container">
+            <h2>Persona-Optimized Pricing</h2>
+            <p>Different value propositions for different user needs</p>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card entrepreneur">
+                    <div class="pricing-header">
+                        <h3>Entrepreneur</h3>
+                        <div class="persona-focus">Fundraising Focus</div>
+                    </div>
+                    <div class="price">$299<span>/month</span></div>
+                    <div class="value-prop">Turn compliance into investor advantage</div>
+                    <ul>
+                        <li>✅ Investor-ready documentation</li>
+                        <li>✅ Series A/B compliance roadmaps</li>
+                        <li>✅ VC benchmark comparisons</li>
+                        <li>✅ Fundraising timeline optimization</li>
+                    </ul>
+                    <button class="btn-primary">Start 14-day trial</button>
+                    <div class="social-proof">Used by 340+ funded startups</div>
+                </div>
+                
+                <div class="pricing-card consultant">
+                    <div class="pricing-header">
+                        <h3>Consultant</h3>
+                        <div class="persona-focus">Risk Protection</div>
+                    </div>
+                    <div class="price">$199<span>/month</span></div>
+                    <div class="value-prop">Avoid million-dollar client lawsuits</div>
+                    <ul>
+                        <li>✅ Pre-engagement risk scoring</li>
+                        <li>✅ Contract protection clauses</li>
+                        <li>✅ Client liability assessment</li>
+                        <li>✅ Insurance impact analysis</li>
+                    </ul>
+                    <button class="btn-primary">Protect your business</button>
+                    <div class="social-proof">$50M+ in fines prevented</div>
+                </div>
+                
+                <div class="pricing-card seller">
+                    <div class="pricing-header">
+                        <h3>Seller</h3>
+                        <div class="persona-focus">Sales Enablement</div>
+                    </div>
+                    <div class="price">$99<span>/month</span></div>
+                    <div class="value-prop">Enable enterprise sales with compliance</div>
+                    <ul>
+                        <li>✅ Client education materials</li>
+                        <li>✅ Sales objection handling</li>
+                        <li>✅ Compliance competitive advantage</li>
+                        <li>✅ Deal risk assessment</li>
+                    </ul>
+                    <button class="btn-primary">Accelerate sales</button>
+                    <div class="social-proof">60% faster deal closure</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="logo">🔗 NexusAI</span>
+                    <p>Compliance intelligence for the AI economy</p>
+                </div>
+                <div class="footer-links">
+                    <a href="/dashboard">Dashboard</a>
+                    <a href="/wizard">Assessment</a>
+                    <a href="#analytics">Analytics</a>
+                    <a href="#market-intelligence">Market Intel</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/scenarios.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+</body>
+</html>
