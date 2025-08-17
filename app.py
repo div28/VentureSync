@@ -1,605 +1,618 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+import os
 import json
-import uuid
-from datetime import datetime, timedelta
+import time
+from datetime import datetime
 import io
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-import requests
-import os
+from reportlab.lib import colors
+import anthropic
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-# Anthropic API configuration
-ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
-ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+# Initialize Claude client
+client = anthropic.Anthropic(
+    api_key=os.getenv('ANTHROPIC_API_KEY')
+)
 
-# Compliance frameworks database
+# Assessment configuration
 COMPLIANCE_FRAMEWORKS = {
-    "fintech": {
-        "name": "Financial Technology",
-        "regulations": [
-            {
-                "name": "GDPR - Financial Data Processing",
-                "description": "Data protection for financial AI systems",
-                "penalty": "Up to €20M or 4% of global revenue",
-                "requirements": ["Data minimization", "Consent management", "Right to explanation"]
-            },
-            {
-                "name": "PCI DSS - AI Payment Processing",
-                "description": "Security standards for AI handling payment data",
-                "penalty": "Up to $500K monthly fines",
-                "requirements": ["Secure AI training", "Data encryption", "Access controls"]
-            },
-            {
-                "name": "Fair Credit Reporting Act (FCRA)",
-                "description": "AI-driven credit decisions and reporting",
-                "penalty": "Up to $1M per violation",
-                "requirements": ["Model explainability", "Bias testing", "Consumer notices"]
-            }
-        ]
+    'gdpr': {
+        'name': 'General Data Protection Regulation',
+        'weight': 0.3,
+        'categories': ['data_protection', 'consent', 'rights', 'security']
     },
-    "healthcare": {
-        "name": "Healthcare Technology",
-        "regulations": [
-            {
-                "name": "HIPAA - AI Healthcare Data",
-                "description": "Privacy rules for AI processing health information",
-                "penalty": "Up to $1.5M per incident",
-                "requirements": ["De-identification", "Audit logs", "Business associate agreements"]
-            },
-            {
-                "name": "FDA AI/ML Guidance",
-                "description": "Regulatory framework for medical AI devices",
-                "penalty": "Product recalls and $10M+ fines",
-                "requirements": ["Clinical validation", "Continuous monitoring", "Change control"]
-            },
-            {
-                "name": "EU AI Act - High-Risk Medical AI",
-                "description": "Strict requirements for medical AI systems",
-                "penalty": "Up to €30M or 6% of global revenue",
-                "requirements": ["CE marking", "Quality management", "Human oversight"]
-            }
-        ]
+    'eu_ai_act': {
+        'name': 'EU AI Act',
+        'weight': 0.4,
+        'categories': ['risk_assessment', 'transparency', 'human_oversight', 'accuracy']
     },
-    "hr": {
-        "name": "Human Resources Technology",
-        "regulations": [
-            {
-                "name": "EU AI Act - HR AI Systems",
-                "description": "Requirements for AI in hiring and workplace",
-                "penalty": "Up to €15M or 3% of global revenue",
-                "requirements": ["Bias monitoring", "Transparency", "Human review"]
-            },
-            {
-                "name": "EEOC - AI in Hiring",
-                "description": "Equal employment opportunity in AI recruitment",
-                "penalty": "Unlimited damages in lawsuits",
-                "requirements": ["Adverse impact testing", "Reasonable accommodations", "Documentation"]
-            },
-            {
-                "name": "NYC Local Law 144",
-                "description": "Bias audits for automated hiring tools",
-                "penalty": "$500-$1,500 per violation",
-                "requirements": ["Annual bias audits", "Public posting", "Alternative selection processes"]
-            }
-        ]
+    'ccpa': {
+        'name': 'California Consumer Privacy Act',
+        'weight': 0.2,
+        'categories': ['data_rights', 'disclosure', 'deletion', 'opt_out']
     },
-    "social": {
-        "name": "Social Media & Content",
-        "regulations": [
-            {
-                "name": "Digital Services Act (DSA)",
-                "description": "Content moderation and algorithmic transparency",
-                "penalty": "Up to €50M or 6% of global revenue",
-                "requirements": ["Risk assessments", "Algorithmic audits", "Transparency reports"]
-            },
-            {
-                "name": "California SB 1001",
-                "description": "Bot disclosure requirements",
-                "penalty": "$2,500 per violation",
-                "requirements": ["Bot identification", "Clear disclosure", "User consent"]
-            },
-            {
-                "name": "UK Online Safety Act",
-                "description": "Duty of care for AI-driven platforms",
-                "penalty": "Up to £18M or 10% of global revenue",
-                "requirements": ["Content governance", "Age verification", "Risk assessments"]
-            }
-        ]
-    },
-    "general": {
-        "name": "General SaaS/Technology",
-        "regulations": [
-            {
-                "name": "GDPR - AI Data Processing",
-                "description": "General data protection for AI systems",
-                "penalty": "Up to €20M or 4% of global revenue",
-                "requirements": ["Lawful basis", "Data minimization", "Privacy by design"]
-            },
-            {
-                "name": "CCPA - AI Consumer Rights",
-                "description": "California consumer privacy for AI applications",
-                "penalty": "Up to $7,500 per violation",
-                "requirements": ["Data disclosure", "Opt-out rights", "Non-discrimination"]
-            },
-            {
-                "name": "EU AI Act - General Purpose AI",
-                "description": "Foundation model and general AI requirements",
-                "penalty": "Up to €35M or 7% of global revenue",
-                "requirements": ["Documentation", "Risk assessment", "Incident reporting"]
-            }
-        ]
+    'industry_specific': {
+        'name': 'Industry Specific Requirements',
+        'weight': 0.1,
+        'categories': ['sector_rules', 'best_practices']
     }
 }
 
-# Risk assessment matrices
-STAGE_MULTIPLIERS = {
-    "mvp": 0.8,
-    "seed": 1.0,
-    "series-a": 1.2,
-    "series-b": 1.4
+RISK_FACTORS = {
+    'high_risk_ai': {
+        'multiplier': 1.5,
+        'description': 'High-risk AI system under EU AI Act'
+    },
+    'personal_data': {
+        'multiplier': 1.3,
+        'description': 'Processing personal data'
+    },
+    'biometric_data': {
+        'multiplier': 1.8,
+        'description': 'Processing biometric data'
+    },
+    'health_data': {
+        'multiplier': 1.6,
+        'description': 'Processing health data'
+    },
+    'financial_data': {
+        'multiplier': 1.4,
+        'description': 'Processing financial data'
+    }
 }
 
-INDUSTRY_RISK_SCORES = {
-    "fintech": 85,
-    "healthcare": 90,
-    "hr": 75,
-    "social": 70,
-    "general": 60
-}
-
-AI_TYPE_RISKS = {
-    "generative": 65,
-    "decision": 85,
-    "recommendation": 60,
-    "biometric": 95,
-    "nlp": 55
-}
-
-def call_claude_api(prompt, max_tokens=1000):
-    """Call Claude API for AI-powered analysis"""
-    try:
-        headers = {
-            "Content-Type": "application/json",
-            "x-api-key": ANTHROPIC_API_KEY
-        }
-        
-        payload = {
-            "model": "claude-3-sonnet-20240229",
-            "max_tokens": max_tokens,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        }
-        
-        response = requests.post(ANTHROPIC_API_URL, headers=headers, json=payload)
-        
-        if response.status_code == 200:
-            return response.json()["content"][0]["text"]
-        else:
-            return "AI analysis unavailable at this time."
-    except Exception as e:
-        print(f"Claude API error: {e}")
-        return "AI analysis unavailable at this time."
-
-@app.route('/health', methods=['GET'])
+@app.route('/', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
-
-@app.route('/api/frameworks/<industry>', methods=['GET'])
-def get_compliance_frameworks(industry):
-    """Get compliance frameworks for specific industry"""
-    if industry not in COMPLIANCE_FRAMEWORKS:
-        return jsonify({"error": "Industry not found"}), 404
-    
-    return jsonify(COMPLIANCE_FRAMEWORKS[industry])
+    return jsonify({
+        'status': 'healthy',
+        'service': 'NexusAI Compliance Platform',
+        'timestamp': datetime.utcnow().isoformat(),
+        'version': '1.0.0'
+    })
 
 @app.route('/api/assess', methods=['POST'])
-def assess_compliance():
-    """Assess compliance based on startup data"""
+def run_assessment():
+    """Run AI compliance assessment using Claude API"""
     try:
+        # Get assessment data
         data = request.get_json()
         
-        # Extract assessment data
-        stage = data.get('stage', 'mvp')
-        ai_types = data.get('aiTypes', [])
-        industry = data.get('industry', 'general')
-        company_data = data.get('companyData', {})
+        if not data:
+            return jsonify({'error': 'No assessment data provided'}), 400
         
-        # Calculate risk score
-        base_score = INDUSTRY_RISK_SCORES.get(industry, 60)
-        stage_multiplier = STAGE_MULTIPLIERS.get(stage, 1.0)
+        logger.info(f"Running assessment for company: {data.get('companyName', 'Unknown')}")
         
-        # AI type risk calculation
-        ai_risk = 0
-        if ai_types:
-            ai_risk = sum(AI_TYPE_RISKS.get(ai_type, 50) for ai_type in ai_types) / len(ai_types)
+        # Validate required fields
+        required_fields = ['companyName', 'fundingStage', 'industry']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'Missing required field: {field}'}), 400
         
-        # Final score calculation
-        final_risk = min(95, max(15, base_score * stage_multiplier + (ai_risk - 50) * 0.5))
-        compliance_score = 100 - final_risk
+        # Calculate compliance score
+        compliance_result = calculate_compliance_score(data)
         
-        # Generate AI-powered recommendations
-        prompt = f"""
-        As an AI compliance expert, analyze this startup's compliance posture:
+        # Generate AI-powered insights using Claude
+        ai_insights = generate_ai_insights(data, compliance_result)
         
-        Company Stage: {stage}
-        Industry: {industry}
-        AI Types: {', '.join(ai_types)}
-        Compliance Score: {compliance_score:.0f}/100
-        
-        Provide 3-5 specific, actionable recommendations to improve compliance.
-        Focus on the most critical gaps first. Be concise and practical.
-        """
-        
-        ai_recommendations = call_claude_api(prompt, 500)
-        
-        # Get applicable regulations
-        regulations = COMPLIANCE_FRAMEWORKS.get(industry, COMPLIANCE_FRAMEWORKS['general'])
-        
-        assessment_result = {
-            "assessmentId": str(uuid.uuid4()),
-            "timestamp": datetime.now().isoformat(),
-            "complianceScore": round(compliance_score),
-            "riskLevel": "High" if compliance_score < 50 else "Medium" if compliance_score < 75 else "Low",
-            "stage": stage,
-            "industry": industry,
-            "aiTypes": ai_types,
-            "applicableRegulations": regulations['regulations'][:3],  # Top 3 most relevant
-            "recommendations": ai_recommendations,
-            "nextSteps": generate_next_steps(stage, compliance_score),
-            "fundraisingReadiness": calculate_fundraising_readiness(stage, compliance_score)
+        # Combine results
+        result = {
+            'overallScore': compliance_result['overall_score'],
+            'scoreStatus': get_score_status(compliance_result['overall_score']),
+            'compliance': compliance_result['framework_scores'],
+            'risks': compliance_result['risks'],
+            'recommendations': ai_insights.get('recommendations', []),
+            'insights': ai_insights.get('insights', ''),
+            'benchmarks': get_industry_benchmarks(data),
+            'assessmentId': generate_assessment_id(),
+            'timestamp': datetime.utcnow().isoformat()
         }
         
-        return jsonify(assessment_result)
+        # Store assessment results (in production, store in database)
+        store_assessment_result(data, result)
+        
+        return jsonify(result)
         
     except Exception as e:
-        print(f"Assessment error: {e}")
-        return jsonify({"error": "Assessment failed"}), 500
+        logger.error(f"Assessment failed: {str(e)}")
+        return jsonify({'error': 'Assessment failed', 'details': str(e)}), 500
 
-def generate_next_steps(stage, score):
-    """Generate stage-appropriate next steps"""
-    steps = []
+def calculate_compliance_score(data):
+    """Calculate compliance score based on assessment data"""
     
-    if stage == "mvp":
-        steps = [
-            "Establish basic privacy policy",
-            "Implement data collection consent",
-            "Document AI decision processes"
-        ]
-    elif stage == "seed":
-        steps = [
-            "Complete compliance gap analysis",
-            "Implement bias testing framework",
-            "Prepare investor due diligence package"
-        ]
-    elif stage == "series-a":
-        steps = [
-            "Conduct third-party compliance audit",
-            "Implement enterprise-grade security",
-            "Establish compliance monitoring"
-        ]
-    else:  # series-b+
-        steps = [
-            "Achieve SOC 2 Type II certification",
-            "Implement full regulatory compliance",
-            "Prepare for IPO readiness"
-        ]
-    
-    if score < 50:
-        steps.insert(0, "Address critical compliance gaps immediately")
-    
-    return steps
-
-def calculate_fundraising_readiness(stage, score):
-    """Calculate fundraising readiness metrics"""
-    readiness_score = min(100, score + 10)  # Slight boost for fundraising context
-    
-    # Stage-specific benchmarks
-    benchmarks = {
-        "mvp": {"target": 60, "investor_expectation": "Basic compliance framework"},
-        "seed": {"target": 70, "investor_expectation": "Due diligence ready"},
-        "series-a": {"target": 80, "investor_expectation": "Enterprise compliance"},
-        "series-b": {"target": 90, "investor_expectation": "Audit-ready processes"}
+    base_scores = {
+        'gdpr': 70,
+        'eu_ai_act': 60,
+        'ccpa': 75,
+        'industry_specific': 65
     }
     
-    stage_benchmark = benchmarks.get(stage, benchmarks["seed"])
+    # Adjust scores based on company profile
+    funding_stage = data.get('fundingStage', '')
+    industry = data.get('industry', '')
+    ai_use_cases = data.get('aiUseCases', [])
+    data_types = data.get('dataTypes', [])
+    target_markets = data.get('targetMarkets', [])
+    high_risk = data.get('highRisk', 'unsure')
+    
+    # Stage-based adjustments
+    stage_adjustments = {
+        'pre-seed': {'multiplier': 0.8, 'bonus': 0},
+        'seed': {'multiplier': 0.9, 'bonus': 5},
+        'series-a': {'multiplier': 1.0, 'bonus': 10},
+        'series-b': {'multiplier': 1.1, 'bonus': 15}
+    }
+    
+    stage_config = stage_adjustments.get(funding_stage, {'multiplier': 1.0, 'bonus': 0})
+    
+    # Industry-specific adjustments
+    industry_risk = {
+        'fintech': 0.9,
+        'healthtech': 0.8,
+        'b2b-saas': 1.1,
+        'e-commerce': 1.0
+    }
+    
+    industry_multiplier = industry_risk.get(industry, 1.0)
+    
+    # Calculate framework scores
+    framework_scores = {}
+    risks = []
+    
+    for framework, config in COMPLIANCE_FRAMEWORKS.items():
+        base_score = base_scores[framework]
+        
+        # Apply adjustments
+        adjusted_score = base_score * stage_config['multiplier'] * industry_multiplier
+        
+        # Data type penalties
+        for data_type in data_types:
+            if data_type in RISK_FACTORS:
+                risk_factor = RISK_FACTORS[data_type]
+                penalty = (risk_factor['multiplier'] - 1) * 10
+                adjusted_score -= penalty
+                
+                # Add to risks if score drops significantly
+                if penalty > 5:
+                    risks.append({
+                        'level': 'high' if penalty > 15 else 'medium',
+                        'description': risk_factor['description'],
+                        'severity': min(penalty / 20, 1.0)
+                    })
+        
+        # High-risk AI system penalty
+        if high_risk == 'yes' and framework == 'eu_ai_act':
+            adjusted_score -= 15
+            risks.append({
+                'level': 'high',
+                'description': 'High-risk AI system requirements',
+                'severity': 0.8
+            })
+        
+        # Market-specific requirements
+        if 'eu' in target_markets:
+            if framework in ['gdpr', 'eu_ai_act']:
+                adjusted_score += 5  # Bonus for EU focus
+        
+        # Ensure score is within bounds
+        adjusted_score = max(0, min(100, adjusted_score + stage_config['bonus']))
+        framework_scores[framework.replace('_', '')] = round(adjusted_score)
+    
+    # Calculate overall score
+    overall_score = sum(
+        framework_scores[framework.replace('_', '')] * config['weight']
+        for framework, config in COMPLIANCE_FRAMEWORKS.items()
+    )
+    
+    # Add some risks based on low scores
+    for framework, score in framework_scores.items():
+        if score < 50:
+            risks.append({
+                'level': 'high',
+                'description': f'Low {COMPLIANCE_FRAMEWORKS[framework.replace("", "_")]["name"]} compliance',
+                'severity': (50 - score) / 50
+            })
+        elif score < 70:
+            risks.append({
+                'level': 'medium',
+                'description': f'Moderate {COMPLIANCE_FRAMEWORKS[framework.replace("", "_")]["name"]} gaps',
+                'severity': (70 - score) / 70
+            })
     
     return {
-        "score": round(readiness_score),
-        "target": stage_benchmark["target"],
-        "gap": max(0, stage_benchmark["target"] - readiness_score),
-        "investorExpectation": stage_benchmark["investor_expectation"],
-        "recommendation": "Ready for fundraising" if readiness_score >= stage_benchmark["target"] else "Address gaps before fundraising"
+        'overall_score': round(overall_score),
+        'framework_scores': framework_scores,
+        'risks': risks[:5]  # Limit to top 5 risks
     }
 
-@app.route('/api/monitoring/updates', methods=['GET'])
-def get_regulatory_updates():
-    """Get latest regulatory updates relevant to AI startups"""
+def generate_ai_insights(assessment_data, compliance_result):
+    """Generate AI-powered insights using Claude"""
     
-    # In a real implementation, this would fetch from a regulatory monitoring service
-    updates = [
-        {
-            "id": str(uuid.uuid4()),
-            "date": (datetime.now() - timedelta(days=2)).isoformat(),
-            "title": "EU AI Act High-Risk System Guidelines Published",
-            "summary": "New implementation guidelines for high-risk AI systems under the EU AI Act",
-            "impact": "High",
-            "relevantIndustries": ["fintech", "healthcare", "hr"],
-            "actionRequired": True,
-            "deadline": (datetime.now() + timedelta(days=180)).isoformat()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "date": (datetime.now() - timedelta(days=5)).isoformat(),
-            "title": "California SB 1001 Enforcement Update",
-            "summary": "Attorney General issues new guidance on AI bot disclosure requirements",
-            "impact": "Medium",
-            "relevantIndustries": ["social", "general"],
-            "actionRequired": False,
-            "deadline": None
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "date": (datetime.now() - timedelta(days=7)).isoformat(),
-            "title": "NIST AI Risk Management Framework 2.0",
-            "summary": "Updated framework includes specific guidance for startup AI systems",
-            "impact": "Medium",
-            "relevantIndustries": ["general"],
-            "actionRequired": False,
-            "deadline": None
-        }
-    ]
-    
-    return jsonify({"updates": updates})
-
-@app.route('/api/vc-simulation', methods=['POST'])
-def vc_simulation():
-    """Simulate VC due diligence questions and scoring"""
     try:
-        data = request.get_json()
-        stage = data.get('stage', 'seed')
-        industry = data.get('industry', 'general')
-        compliance_score = data.get('complianceScore', 50)
-        
-        # Generate VC-specific questions based on stage and industry
-        questions = generate_vc_questions(stage, industry)
-        
-        # Simulate VC scoring
-        vc_score = calculate_vc_score(compliance_score, stage)
-        
-        return jsonify({
-            "simulationId": str(uuid.uuid4()),
-            "vcScore": vc_score,
-            "questions": questions,
-            "benchmark": get_stage_benchmark(stage),
-            "recommendations": generate_vc_recommendations(vc_score, stage)
-        })
-        
+        # Prepare context for Claude
+        context = f"""
+        Company Profile:
+        - Name: {assessment_data.get('companyName', 'Unknown')}
+        - Funding Stage: {assessment_data.get('fundingStage', 'Unknown')}
+        - Industry: {assessment_data.get('industry', 'Unknown')}
+        - AI Use Cases: {', '.join(assessment_data.get('aiUseCases', []))}
+        - Data Types: {', '.join(assessment_data.get('dataTypes', []))}
+        - Target Markets: {', '.join(assessment_data.get('targetMarkets', []))}
+        - High Risk System: {assessment_data.get('highRisk', 'Unknown')}
+
+        Compliance Scores:
+        - Overall Score: {compliance_result['overall_score']}%
+        - GDPR: {compliance_result['framework_scores'].get('gdpr', 0)}%
+        - EU AI Act: {compliance_result['framework_scores'].get('euaiact', 0)}%
+        - CCPA: {compliance_result['framework_scores'].get('ccpa', 0)}%
+
+        Top Risks:
+        {chr(10).join([f"- {risk['description']} ({risk['level']} risk)" for risk in compliance_result['risks'][:3]])}
+        """
+
+        prompt = f"""
+        As an AI compliance expert, analyze this startup's compliance assessment and provide:
+
+        1. Key insights about their compliance posture
+        2. 5 specific, actionable recommendations prioritized by impact
+        3. Fundraising implications and investor perspective
+
+        Assessment Data:
+        {context}
+
+        Provide a structured response in JSON format:
+        {{
+            "insights": "2-3 sentence summary of key findings",
+            "recommendations": [
+                "Specific actionable recommendation 1",
+                "Specific actionable recommendation 2",
+                "Specific actionable recommendation 3",
+                "Specific actionable recommendation 4",
+                "Specific actionable recommendation 5"
+            ],
+            "fundraising_impact": "How compliance affects fundraising prospects",
+            "priority_actions": [
+                "Most critical action to take immediately",
+                "Second most critical action"
+            ]
+        }}
+
+        Focus on practical, startup-friendly advice that considers their funding stage and industry.
+        """
+
+        # Call Claude API
+        response = client.messages.create(
+            model="claude-3-sonnet-20240229",
+            max_tokens=1000,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        # Parse Claude's response
+        try:
+            ai_response = json.loads(response.content[0].text)
+            return ai_response
+        except json.JSONDecodeError:
+            # Fallback if JSON parsing fails
+            return {
+                "insights": "AI analysis completed. Compliance gaps identified in data privacy and transparency requirements.",
+                "recommendations": [
+                    "Implement data minimization principles",
+                    "Enhance algorithm explainability documentation",
+                    "Complete privacy impact assessments",
+                    "Establish data subject rights procedures",
+                    "Set up compliance monitoring processes"
+                ],
+                "fundraising_impact": "Current compliance gaps may slow due diligence process",
+                "priority_actions": [
+                    "Address high-risk data processing issues",
+                    "Document AI system capabilities and limitations"
+                ]
+            }
+
     except Exception as e:
-        print(f"VC simulation error: {e}")
-        return jsonify({"error": "VC simulation failed"}), 500
+        logger.error(f"Claude API call failed: {str(e)}")
+        # Return fallback insights
+        return generate_fallback_insights(assessment_data, compliance_result)
 
-def generate_vc_questions(stage, industry):
-    """Generate stage and industry appropriate VC questions"""
-    base_questions = [
-        "How do you ensure your AI models are free from bias?",
-        "What data governance policies do you have in place?",
-        "How do you handle user privacy and consent?",
-        "What is your approach to AI model explainability?"
-    ]
+def generate_fallback_insights(assessment_data, compliance_result):
+    """Generate fallback insights when Claude API is unavailable"""
     
-    industry_questions = {
-        "fintech": [
-            "How do you comply with financial regulations like GDPR and PCI DSS?",
-            "What measures prevent discriminatory lending or credit decisions?"
-        ],
-        "healthcare": [
-            "How do you ensure HIPAA compliance in your AI processing?",
-            "What clinical validation have you completed for your AI models?"
-        ],
-        "hr": [
-            "How do you prevent hiring discrimination in your AI?",
-            "What bias auditing processes do you have in place?"
-        ]
-    }
+    overall_score = compliance_result['overall_score']
+    funding_stage = assessment_data.get('fundingStage', '')
     
-    questions = base_questions[:]
-    if industry in industry_questions:
-        questions.extend(industry_questions[industry])
-    
-    return questions[:6]  # Limit to 6 questions
-
-def calculate_vc_score(compliance_score, stage):
-    """Calculate VC attractiveness score"""
-    base_vc_score = compliance_score * 0.8  # VCs weight compliance at 80%
-    
-    stage_bonus = {
-        "mvp": 5,
-        "seed": 10,
-        "series-a": 15,
-        "series-b": 20
-    }
-    
-    return min(100, round(base_vc_score + stage_bonus.get(stage, 10)))
-
-def get_stage_benchmark(stage):
-    """Get benchmark data for stage"""
-    benchmarks = {
-        "mvp": {"median_score": 45, "top_quartile": 65},
-        "seed": {"median_score": 60, "top_quartile": 75},
-        "series-a": {"median_score": 75, "top_quartile": 85},
-        "series-b": {"median_score": 85, "top_quartile": 95}
-    }
-    return benchmarks.get(stage, benchmarks["seed"])
-
-def generate_vc_recommendations(vc_score, stage):
-    """Generate VC-specific recommendations"""
-    if vc_score >= 80:
-        return [
-            "Excellent compliance posture for fundraising",
-            "Use compliance as a competitive differentiator",
-            "Prepare detailed due diligence materials"
-        ]
-    elif vc_score >= 60:
-        return [
-            "Address key compliance gaps before fundraising",
-            "Implement recommended security measures",
-            "Document compliance processes"
-        ]
+    if overall_score >= 80:
+        insights = "Strong compliance foundation with minimal gaps. Well-positioned for fundraising and enterprise sales."
+    elif overall_score >= 65:
+        insights = "Good compliance posture with some areas for improvement. Should not significantly impact fundraising timeline."
     else:
-        return [
-            "Significant compliance work needed before fundraising",
-            "Consider compliance consultation",
-            "Delay fundraising until critical gaps addressed"
+        insights = "Significant compliance gaps identified that require immediate attention before fundraising or enterprise sales."
+    
+    # Stage-specific recommendations
+    stage_recommendations = {
+        'pre-seed': [
+            "Establish basic data privacy policies",
+            "Document AI system architecture and data flow",
+            "Implement user consent mechanisms",
+            "Set up basic security controls",
+            "Create privacy-by-design development practices"
+        ],
+        'seed': [
+            "Complete comprehensive privacy impact assessment",
+            "Implement data subject rights request procedures",
+            "Enhance AI system documentation and testing",
+            "Establish vendor compliance requirements",
+            "Prepare investor-ready compliance documentation"
+        ],
+        'series-a': [
+            "Conduct third-party compliance audit",
+            "Implement advanced AI governance framework",
+            "Establish compliance monitoring and reporting",
+            "Complete industry-specific certifications",
+            "Build compliance team and processes"
         ]
+    }
+    
+    recommendations = stage_recommendations.get(funding_stage, stage_recommendations['seed'])
+    
+    return {
+        "insights": insights,
+        "recommendations": recommendations,
+        "fundraising_impact": f"Compliance score of {overall_score}% is {'strong' if overall_score >= 75 else 'acceptable' if overall_score >= 60 else 'concerning'} for {funding_stage} stage fundraising.",
+        "priority_actions": recommendations[:2]
+    }
 
-@app.route('/generate-report', methods=['POST'])
-def generate_detailed_report():
-    """Generate comprehensive PDF compliance report"""
+def get_score_status(score):
+    """Get qualitative status based on numeric score"""
+    if score >= 85:
+        return "Excellent"
+    elif score >= 75:
+        return "Good"
+    elif score >= 60:
+        return "Fair"
+    else:
+        return "Needs Improvement"
+
+def get_industry_benchmarks(data):
+    """Get industry benchmark data"""
+    industry = data.get('industry', 'b2b-saas')
+    funding_stage = data.get('fundingStage', 'seed')
+    
+    # Mock benchmark data (in production, this would come from database)
+    benchmarks = {
+        'fintech': {
+            'pre-seed': {'average': 65, 'top_quartile': 80},
+            'seed': {'average': 72, 'top_quartile': 85},
+            'series-a': {'average': 78, 'top_quartile': 90}
+        },
+        'healthtech': {
+            'pre-seed': {'average': 70, 'top_quartile': 85},
+            'seed': {'average': 75, 'top_quartile': 88},
+            'series-a': {'average': 82, 'top_quartile': 92}
+        },
+        'b2b-saas': {
+            'pre-seed': {'average': 68, 'top_quartile': 82},
+            'seed': {'average': 74, 'top_quartile': 86},
+            'series-a': {'average': 80, 'top_quartile': 91}
+        }
+    }
+    
+    industry_benchmarks = benchmarks.get(industry, benchmarks['b2b-saas'])
+    stage_benchmarks = industry_benchmarks.get(funding_stage, industry_benchmarks['seed'])
+    
+    return {
+        'industry_average': stage_benchmarks['average'],
+        'top_quartile': stage_benchmarks['top_quartile'],
+        'industry': industry,
+        'stage': funding_stage
+    }
+
+def generate_assessment_id():
+    """Generate unique assessment ID"""
+    return f"assess_{int(time.time())}_{hash(str(time.time())) % 10000:04d}"
+
+def store_assessment_result(assessment_data, result):
+    """Store assessment result (placeholder for database storage)"""
+    # In production, this would store to a database
+    logger.info(f"Assessment completed for {assessment_data.get('companyName')} with score {result['overallScore']}%")
+
+@app.route('/api/generate-report', methods=['POST'])
+def generate_report():
+    """Generate PDF compliance report"""
     try:
         data = request.get_json()
+        assessment_data = data.get('assessmentData', {})
+        results = data.get('results', {})
         
         # Create PDF in memory
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72,
-                              topMargin=72, bottomMargin=18)
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
         
-        # Container for the 'Flowable' objects
-        elements = []
-        
-        # Define styles
+        # Get styles
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=24,
             spaceAfter=30,
-            alignment=TA_CENTER,
-            textColor=colors.HexColor('#667eea')
+            textColor=colors.HexColor('#0a0f1c')
         )
         
-        heading_style = ParagraphStyle(
-            'CustomHeading',
-            parent=styles['Heading2'],
-            fontSize=16,
-            spaceAfter=12,
-            textColor=colors.HexColor('#1a202c')
-        )
+        # Build PDF content
+        story = []
         
         # Title
-        title = Paragraph("FounderShield AI Compliance Report", title_style)
-        elements.append(title)
-        elements.append(Spacer(1, 20))
+        company_name = assessment_data.get('companyName', 'Your Company')
+        title = Paragraph(f"AI Compliance Assessment Report<br/>{company_name}", title_style)
+        story.append(title)
+        story.append(Spacer(1, 20))
         
-        # Executive Summary Table
-        exec_data = [
-            ['Report ID', str(uuid.uuid4())[:8]],
-            ['Generated', datetime.now().strftime('%Y-%m-%d %H:%M UTC')],
-            ['Company Stage', data.get('stage', 'Unknown').title()],
-            ['Industry', data.get('industry', 'Unknown').title()],
-            ['Compliance Score', f"{data.get('score', 'N/A')}/100"],
-            ['AI Systems', ', '.join(data.get('aiTypes', []))]
-        ]
+        # Executive Summary
+        story.append(Paragraph("Executive Summary", styles['Heading2']))
+        summary_text = f"""
+        This report provides a comprehensive analysis of {company_name}'s AI compliance posture 
+        across key regulatory frameworks including GDPR, EU AI Act, and CCPA. 
         
-        exec_table = Table(exec_data, colWidths=[2*inch, 3*inch])
-        exec_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f7fafc')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e2e8f0'))
-        ]))
-        
-        elements.append(Paragraph("Executive Summary", heading_style))
-        elements.append(exec_table)
-        elements.append(Spacer(1, 20))
-        
-        # Compliance Analysis
-        elements.append(Paragraph("Compliance Analysis", heading_style))
-        
-        score = int(data.get('score', 50))
-        if score >= 80:
-            analysis = "Excellent compliance foundation. Your startup demonstrates strong regulatory awareness and implementation."
-        elif score >= 60:
-            analysis = "Good compliance progress with some areas for improvement. Focus on closing identified gaps."
-        else:
-            analysis = "Significant compliance gaps detected. Immediate action recommended to address regulatory risks."
-        
-        elements.append(Paragraph(analysis, styles['Normal']))
-        elements.append(Spacer(1, 20))
-        
-        # Key Findings
-        elements.append(Paragraph("Key Findings", heading_style))
-        
-        findings = [
-            f"• Current compliance maturity: {score}% for {data.get('stage', 'unknown')} stage company",
-            f"• Industry risk profile: {data.get('industry', 'unknown').title()} sector requirements",
-            f"• AI system complexity: {len(data.get('aiTypes', []))} different AI capabilities",
-            "• Regulatory landscape: EU AI Act, GDPR, and sector-specific requirements applicable"
-        ]
-        
-        for finding in findings:
-            elements.append(Paragraph(finding, styles['Normal']))
-        
-        elements.append(Spacer(1, 20))
-        
-        # Implementation Roadmap
-        elements.append(Paragraph("Implementation Roadmap", heading_style))
-        
-        roadmap_items = [
-            "Phase 1 (0-30 days): Address critical compliance gaps",
-            "Phase 2 (30-90 days): Implement core governance frameworks",
-            "Phase 3 (90-180 days): Complete sector-specific requirements",
-            "Phase 4 (180+ days): Ongoing monitoring and optimization"
-        ]
-        
-        for item in roadmap_items:
-            elements.append(Paragraph(item, styles['Normal']))
-        
-        elements.append(Spacer(1, 30))
-        
-        # Contact Information
-        elements.append(Paragraph("Next Steps", heading_style))
-        contact_text = """
-        This assessment provides a high-level overview of your compliance posture. 
-        For detailed implementation guidance, consider scheduling a consultation with our compliance experts.
-        
-        Contact: compliance@foundershield.com
-        Platform: https://foundershield.com
-        
-        Disclaimer: This report is for informational purposes only and does not constitute legal advice.
+        Overall Compliance Score: {results.get('overallScore', 0)}% ({results.get('scoreStatus', 'Unknown')})
         """
-        elements.append(Paragraph(contact_text, styles['Normal']))
+        story.append(Paragraph(summary_text, styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Company Profile
+        story.append(Paragraph("Company Profile", styles['Heading2']))
+        profile_data = [
+            ['Company Name', company_name],
+            ['Funding Stage', assessment_data.get('fundingStage', 'Unknown').title()],
+            ['Industry', assessment_data.get('industry', 'Unknown').title()],
+            ['AI Use Cases', ', '.join(assessment_data.get('aiUseCases', []))],
+            ['Data Types', ', '.join(assessment_data.get('dataTypes', []))],
+            ['Target Markets', ', '.join(assessment_data.get('targetMarkets', []))]
+        ]
+        
+        profile_table = Table(profile_data, colWidths=[2*inch, 4*inch])
+        profile_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(profile_table)
+        story.append(Spacer(1, 20))
+        
+        # Compliance Scores
+        story.append(Paragraph("Compliance Framework Scores", styles['Heading2']))
+        compliance = results.get('compliance', {})
+        scores_data = [
+            ['Framework', 'Score', 'Status'],
+            ['GDPR', f"{compliance.get('gdpr', 0)}%", get_score_status(compliance.get('gdpr', 0))],
+            ['EU AI Act', f"{compliance.get('euaiact', 0)}%", get_score_status(compliance.get('euaiact', 0))],
+            ['CCPA', f"{compliance.get('ccpa', 0)}%", get_score_status(compliance.get('ccpa', 0))]
+        ]
+        
+        scores_table = Table(scores_data, colWidths=[2.5*inch, 1*inch, 2.5*inch])
+        scores_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(scores_table)
+        story.append(Spacer(1, 20))
+        
+        # Recommendations
+        story.append(Paragraph("Recommendations", styles['Heading2']))
+        recommendations = results.get('recommendations', [])
+        for i, rec in enumerate(recommendations[:5], 1):
+            story.append(Paragraph(f"{i}. {rec}", styles['Normal']))
+            story.append(Spacer(1, 6))
+        
+        story.append(Spacer(1, 20))
+        
+        # Footer
+        footer_text = f"""
+        Generated by NexusAI Compliance Platform on {datetime.now().strftime('%B %d, %Y')}
+        
+        This report is for informational purposes only and does not constitute legal advice.
+        Please consult with qualified legal counsel for compliance matters.
+        """
+        story.append(Paragraph(footer_text, styles['Normal']))
         
         # Build PDF
-        doc.build(elements)
+        doc.build(story)
         buffer.seek(0)
         
         return send_file(
             buffer,
-            mimetype='application/pdf',
             as_attachment=True,
-            download_name=f'FounderShield_Report_{datetime.now().strftime("%Y%m%d")}.pdf'
+            download_name=f"{company_name.replace(' ', '_')}_Compliance_Report.pdf",
+            mimetype='application/pdf'
         )
         
     except Exception as e:
-        print(f"Report generation error: {e}")
-        return jsonify({"error": "Report generation failed"}), 500
+        logger.error(f"Report generation failed: {str(e)}")
+        return jsonify({'error': 'Report generation failed', 'details': str(e)}), 500
+
+@app.route('/api/regulatory/latest', methods=['GET'])
+def get_regulatory_updates():
+    """Get latest regulatory updates"""
+    try:
+        # Mock regulatory updates (in production, this would come from regulatory APIs)
+        updates = [
+            {
+                'id': 'eu-ai-act-2024-1',
+                'title': 'EU AI Act Implementation Guidelines Published',
+                'description': 'European Commission releases detailed implementation guidelines for high-risk AI systems.',
+                'date': '2024-08-15',
+                'impact': 'high',
+                'frameworks': ['eu_ai_act'],
+                'url': 'https://example.com/eu-ai-act-guidelines'
+            },
+            {
+                'id': 'gdpr-update-2024-2',
+                'title': 'GDPR Guidance on AI Decision Making',
+                'description': 'Updated guidance on automated decision-making and profiling under GDPR.',
+                'date': '2024-08-10',
+                'impact': 'medium',
+                'frameworks': ['gdpr'],
+                'url': 'https://example.com/gdpr-ai-guidance'
+            },
+            {
+                'id': 'ccpa-amendment-2024-1',
+                'title': 'CCPA Amendments Affecting AI Systems',
+                'description': 'New amendments to CCPA specifically addressing AI and machine learning systems.',
+                'date': '2024-08-05',
+                'impact': 'medium',
+                'frameworks': ['ccpa'],
+                'url': 'https://example.com/ccpa-ai-amendments'
+            }
+        ]
+        
+        return jsonify({
+            'updates': updates,
+            'last_updated': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch regulatory updates: {str(e)}")
+        return jsonify({'error': 'Failed to fetch updates', 'details': str(e)}), 500
+
+@app.route('/api/frameworks', methods=['GET'])
+def get_compliance_frameworks():
+    """Get available compliance frameworks"""
+    return jsonify({
+        'frameworks': COMPLIANCE_FRAMEWORKS,
+        'risk_factors': RISK_FACTORS
+    })
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Endpoint not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', port=port, debug=debug)
