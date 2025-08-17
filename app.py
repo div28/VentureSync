@@ -18,12 +18,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://nexusaiplatform.netlify.app", "http://localhost:3000"], 
+     methods=['GET', 'POST', 'OPTIONS'],
+     allow_headers=['Content-Type', 'Authorization'])
 
-# Initialize Claude client
-client = anthropic.Anthropic(
-    api_key=os.getenv('ANTHROPIC_API_KEY')
-)
+# Initialize Claude client with error handling
+try:
+    client = anthropic.Anthropic(
+        api_key=os.getenv('ANTHROPIC_API_KEY')
+    )
+    logger.info("Claude client initialized successfully")
+except Exception as e:
+    logger.warning(f"Claude client initialization failed: {e}")
+    client = None
 
 # Assessment configuration
 COMPLIANCE_FRAMEWORKS = {
