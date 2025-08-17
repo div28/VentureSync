@@ -1,389 +1,704 @@
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify
 from flask_cors import CORS
+import os
 import requests
 import json
-import os
-from datetime import datetime, timedelta
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.units import inch
-from reportlab.lib.colors import HexColor
-import io
-import random
-from dotenv import load_dotenv
+import re
+from datetime import datetime
+import logging
 
-load_dotenv()
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-# Claude API configuration
-CLAUDE_API_KEY = os.getenv('CLAUDE_API_KEY', 'your-claude-api-key')
+# Configuration
+CLAUDE_API_KEY = os.environ.get('CLAUDE_API_KEY')
 CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
 
-# Enhanced demo scenarios with persona focus
-DEMO_SCENARIOS = {
-    "entrepreneur": [
-        {
-            "name": "TechStart Pro",
-            "type": "AI Startup - Series A",
-            "industry": "B2B SaaS",
-            "ai_system": "Sales lead scoring with anonymized data",
-            "risk_level": "LOW",
-            "risk_score": 25,
-            "compliance_score": 92,
-            "potential_fines": "$15,000",
-            "status": "✅ Investor Ready",
-            "key_strengths": ["GDPR compliant", "SOC2 certified", "Clear data policies"],
-            "estimated_cost": "$45,000",
-            "funding_advantage": "78% higher Series A success",
-            "investor_confidence": "92% VC approval rate"
-        },
-        {
-            "name": "HealthTech AI",
-            "type": "Healthcare Startup - Seed",
-            "industry": "Healthcare",
-            "ai_system": "HIPAA-compliant patient scheduling AI",
-            "risk_level": "LOW",
-            "risk_score": 30,
-            "compliance_score": 89,
-            "potential_fines": "$25,000",
-            "status": "✅ Series B Ready",
-            "key_strengths": ["HIPAA certified", "BAA agreements", "Encrypted data"],
-            "estimated_cost": "$78,000",
-            "funding_advantage": "Enterprise deals 60% faster",
-            "investor_confidence": "Zero compliance violations"
-        }
-    ],
-    "consultant": [
-        {
-            "name": "QuickHire AI Client",
-            "type": "HR Tech Prospect",
-            "industry": "Human Resources",
-            "ai_system": "AI hiring tool with bias issues",
-            "risk_level": "CRITICAL",
-            "risk_score": 95,
-            "compliance_score": 15,
-            "potential_fines": "$4,200,000",
-            "status": "🚨 Avoid Client",
-            "key_risks": ["EEOC violations", "Discriminatory AI", "No bias testing"],
-            "estimated_cost": "$180,000",
-            "lawsuit_probability": "73% violation rate",
-            "protection_needed": "Contract liability caps essential"
-        },
-        {
-            "name": "RetailBot Corp",
-            "type": "E-commerce Client",
-            "industry": "Retail",
-            "ai_system": "Customer data mining without consent",
-            "risk_level": "CRITICAL",
-            "risk_score": 88,
-            "compliance_score": 22,
-            "potential_fines": "$2,800,000",
-            "status": "🚨 High Risk Client",
-            "key_risks": ["GDPR violations", "No consent", "Data misuse"],
-            "estimated_cost": "$220,000",
-            "lawsuit_probability": "High GDPR enforcement",
-            "protection_needed": "Full compliance before engagement"
-        }
-    ],
-    "seller": [
-        {
-            "name": "FinanceBot Inc",
-            "type": "FinTech SMB",
-            "industry": "Financial Services",
-            "ai_system": "Investment advice chatbot",
-            "risk_level": "MEDIUM",
-            "risk_score": 55,
-            "compliance_score": 68,
-            "potential_fines": "$350,000",
-            "status": "⚠️ Education Needed",
-            "key_gaps": ["SEC registration", "Fiduciary duties", "Risk disclosures"],
-            "estimated_cost": "$125,000",
-            "client_education": "Compliance training required",
-            "liability_protection": "Moderate risk mitigation"
-        }
-    ]
-}
+if not CLAUDE_API_KEY:
+    logger.warning("CLAUDE_API_KEY not found in environment variables - using fallback analysis")
 
-# Analytics data for demo
-ANALYTICS_DATA = {
-    "conversion_metrics": {
-        "entrepreneur": {"visitors": 1000, "assessments": 450, "paid": 140, "conversion_rate": "31%"},
-        "consultant": {"visitors": 800, "assessments": 520, "paid": 180, "conversion_rate": "35%"},
-        "seller": {"visitors": 600, "assessments": 240, "paid": 60, "conversion_rate": "25%"}
-    },
-    "ltv_by_persona": {
-        "entrepreneur": {"avg_ltv": 12000, "retention_12m": "78%", "expansion_revenue": "45%"},
-        "consultant": {"avg_ltv": 8500, "retention_12m": "82%", "expansion_revenue": "25%"},
-        "seller": {"avg_ltv": 4200, "retention_12m": "65%", "expansion_revenue": "15%"}
-    },
-    "market_intelligence": {
-        "tam": "$12.3B",
-        "sam": "$2.1B", 
-        "som": "$210M",
-        "growth_rate": "34% YoY",
-        "competitor_analysis": {
-            "vanta": "Enterprise only, $2K+ monthly",
-            "legal_firms": "$500/hr, slow delivery",
-            "nexusai": "Entrepreneur-focused, $299/month"
-        }
-    }
-}
+# AI Agent Classes
+class ComplianceStrategistAgent:
+    """AI agent that creates personalized compliance strategies for AI startups"""
+    
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.model = "claude-3-5-sonnet-20241022"
+    
+    def analyze_startup_profile(self, startup_data):
+        """Analyze startup and create compliance strategy"""
+        
+        if not self.api_key:
+            return self._fallback_analysis(startup_data)
+        
+        prompt = f"""
+        You are a senior compliance strategist specializing in AI startups. Analyze this startup profile and create a comprehensive compliance assessment that will help them turn compliance into a competitive advantage for fundraising.
 
-class RiskScoringEngine:
-    def __init__(self):
-        self.industry_weights = {
-            'healthcare': {'base_risk': 0.8, 'multiplier': 1.5},
-            'finance': {'base_risk': 0.75, 'multiplier': 1.4},
-            'hr': {'base_risk': 0.7, 'multiplier': 1.3},
-            'education': {'base_risk': 0.6, 'multiplier': 1.2},
-            'retail': {'base_risk': 0.5, 'multiplier': 1.1},
-            'saas': {'base_risk': 0.4, 'multiplier': 1.0}
+        STARTUP PROFILE:
+        - Company: {startup_data.get('companyName', 'AI Startup')}
+        - Funding Stage: {startup_data.get('fundingStage', 'Unknown')}
+        - Team Size: {startup_data.get('teamSize', 'Unknown')}
+        - AI System: {startup_data.get('aiDescription', 'AI system description not provided')}
+        - Use Cases: {', '.join(startup_data.get('useCases', []))}
+        - Data Types: {', '.join(startup_data.get('dataTypes', []))}
+        - Target Industries: {', '.join(startup_data.get('industries', []))}
+        - Operating Regions: {', '.join(startup_data.get('regions', []))}
+        - Fundraising Timeline: {startup_data.get('fundraising', 'Unknown')}
+
+        ANALYSIS REQUIREMENTS:
+        1. Focus on stage-appropriate compliance (don't overwhelm pre-seed with enterprise requirements)
+        2. Identify investor red flags that could kill fundraising
+        3. Highlight competitive advantages compliance can create
+        4. Provide realistic timelines and costs
+        5. Consider industry-specific regulations
+
+        Respond with a JSON object with these exact keys:
+        {{
+            "compliance_score": <number 1-100>,
+            "investor_score": <number 1-100>,
+            "risk_level": "<LOW/MEDIUM/HIGH>",
+            "stage_assessment": "<analysis of what compliance makes sense for their stage>",
+            "investor_readiness": "<assessment of VC due diligence readiness>",
+            "competitive_advantages": ["<ways compliance can differentiate them>"],
+            "key_risks": ["<top 3 compliance risks>"],
+            "recommendations": [
+                {{
+                    "priority": "<high/medium/low>",
+                    "title": "<specific recommendation>",
+                    "description": "<what they need to do>",
+                    "timeline": "<realistic timeframe>",
+                    "cost": "<cost estimate>",
+                    "impact": "<why this matters for fundraising/business>"
+                }}
+            ],
+            "benchmarks": {{
+                "industry_percentile": <number 1-100>,
+                "time_to_compliance": "<weeks>",
+                "estimated_investment": "<dollar range>",
+                "success_probability": "<percentage>"
+            }}
+        }}
+
+        Be specific about costs and timelines. Focus on recommendations that actually help with fundraising.
+        """
+        
+        try:
+            response = requests.post(
+                CLAUDE_API_URL,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": self.api_key,
+                    "anthropic-version": "2023-06-01"
+                },
+                json={
+                    "model": self.model,
+                    "max_tokens": 2500,
+                    "messages": [{"role": "user", "content": prompt}]
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result['content'][0]['text']
+                
+                # Extract JSON from response
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    analysis = json.loads(json_match.group())
+                    logger.info(f"Successfully analyzed startup: {startup_data.get('companyName')}")
+                    return analysis
+                else:
+                    logger.error("No valid JSON found in Claude response")
+                    return self._fallback_analysis(startup_data)
+            else:
+                logger.error(f"Claude API error: {response.status_code} - {response.text}")
+                return self._fallback_analysis(startup_data)
+                
+        except requests.exceptions.Timeout:
+            logger.error("Claude API timeout")
+            return self._fallback_analysis(startup_data)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error: {str(e)}")
+            return self._fallback_analysis(startup_data)
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {str(e)}")
+            return self._fallback_analysis(startup_data)
+        except Exception as e:
+            logger.error(f"Unexpected error in compliance analysis: {str(e)}")
+            return self._fallback_analysis(startup_data)
+    
+    def _fallback_analysis(self, startup_data):
+        """Fallback analysis using rule-based logic"""
+        
+        # Base scoring
+        compliance_score = 50
+        investor_score = 40
+        
+        # Adjust based on funding stage
+        stage_adjustments = {
+            'pre-seed': {'compliance': -10, 'investor': -15},
+            'seed': {'compliance': 0, 'investor': 0},
+            'series-a': {'compliance': 10, 'investor': 15},
+            'series-b': {'compliance': 20, 'investor': 25},
+            'growth': {'compliance': 30, 'investor': 35}
         }
         
-        self.persona_adjustments = {
-            'entrepreneur': {'risk_tolerance': 0.9, 'growth_factor': 1.2},
-            'consultant': {'risk_tolerance': 0.7, 'liability_factor': 1.4},
-            'seller': {'risk_tolerance': 0.8, 'education_factor': 1.1}
-        }
-
-    def calculate_persona_risk(self, ai_system_data, persona):
-        industry = ai_system_data.get('industry', 'saas').lower()
-        base_score = self.industry_weights.get(industry, self.industry_weights['saas'])['base_risk'] * 100
+        stage = startup_data.get('fundingStage', 'seed')
+        if stage in stage_adjustments:
+            compliance_score += stage_adjustments[stage]['compliance']
+            investor_score += stage_adjustments[stage]['investor']
         
-        persona_config = self.persona_adjustments.get(persona, self.persona_adjustments['entrepreneur'])
-        adjusted_score = base_score * persona_config.get('risk_tolerance', 1.0)
+        # Industry risk adjustments
+        high_risk_industries = ['healthcare', 'finance', 'hr']
+        medium_risk_industries = ['education', 'retail']
         
-        return min(100, max(0, int(adjusted_score)))
-
-class ComprehensiveAnalysisAgent:
-    def __init__(self):
-        self.risk_engine = RiskScoringEngine()
+        industries = startup_data.get('industries', [])
+        if any(industry in high_risk_industries for industry in industries):
+            compliance_score -= 20
+            investor_score -= 15
+        elif any(industry in medium_risk_industries for industry in industries):
+            compliance_score -= 10
+            investor_score -= 5
         
-    def analyze_with_persona(self, ai_system_data, persona):
-        risk_score = self.risk_engine.calculate_persona_risk(ai_system_data, persona)
-        compliance_score = max(10, 100 - risk_score)
+        # Data sensitivity adjustments
+        sensitive_data = ['health', 'financial', 'biometric']
+        personal_data = ['personal', 'behavioral', 'location']
         
-        risk_level = self._get_risk_level(risk_score)
+        data_types = startup_data.get('dataTypes', [])
+        if any(data_type in sensitive_data for data_type in data_types):
+            compliance_score -= 15
+            investor_score -= 10
+        elif any(data_type in personal_data for data_type in data_types):
+            compliance_score -= 5
+            investor_score -= 5
         
-        # Persona-specific analysis
-        if persona == 'entrepreneur':
-            return self._entrepreneur_analysis(ai_system_data, risk_score, compliance_score, risk_level)
-        elif persona == 'consultant':
-            return self._consultant_analysis(ai_system_data, risk_score, compliance_score, risk_level)
+        # Geographic complexity
+        regions = startup_data.get('regions', [])
+        if 'eu' in regions:
+            compliance_score -= 10
+        if len(regions) > 2:
+            compliance_score -= 5
+        
+        # AI use case complexity
+        high_risk_use_cases = ['decision', 'automation']
+        use_cases = startup_data.get('useCases', [])
+        if any(use_case in high_risk_use_cases for use_case in use_cases):
+            compliance_score -= 10
+            investor_score -= 5
+        
+        # Cap scores
+        compliance_score = max(15, min(90, compliance_score))
+        investor_score = max(10, min(85, investor_score))
+        
+        # Determine risk level
+        if compliance_score < 40:
+            risk_level = "HIGH"
+        elif compliance_score < 65:
+            risk_level = "MEDIUM"
         else:
-            return self._seller_analysis(ai_system_data, risk_score, compliance_score, risk_level)
-    
-    def _entrepreneur_analysis(self, data, risk_score, compliance_score, risk_level):
-        return {
-            "risk_assessment": {
-                "risk_level": risk_level,
-                "risk_score": risk_score,
-                "compliance_score": compliance_score,
-                "status_color": self._get_status_color(risk_level),
-                "investor_readiness": "Series B Ready" if compliance_score > 85 else "Needs improvement"
-            },
-            "financial_impact": {
-                "potential_fines": f"${random.randint(50000, 500000):,}",
-                "implementation_costs": f"${random.randint(80000, 200000):,}",
-                "fundraising_impact": f"{random.randint(40, 80)}% faster with compliance",
-                "roi_timeline": "6-12 months"
-            },
-            "investor_advantage": {
-                "vc_approval_rate": f"{90 - (risk_score // 10)}%",
-                "due_diligence_speed": f"{random.randint(40, 70)}% faster",
-                "valuation_premium": f"{random.randint(15, 35)}% higher"
-            },
-            "recommendations": {
-                "immediate_actions": ["Prepare investor compliance package", "Document data governance"],
-                "funding_milestones": ["Complete SOC2 before Series A", "EU compliance before international expansion"]
-            },
-            "executive_summary": f"Compliance score of {compliance_score}% positions you in top {100-compliance_score}% of AI startups. Strong foundation for investor confidence."
-        }
-    
-    def _consultant_analysis(self, data, risk_score, compliance_score, risk_level):
-        lawsuit_risk = "High" if risk_score > 70 else "Medium" if risk_score > 40 else "Low"
+            risk_level = "LOW"
+        
+        # Generate recommendations
+        recommendations = self._generate_recommendations(startup_data, compliance_score)
         
         return {
-            "risk_assessment": {
-                "risk_level": risk_level,
-                "risk_score": risk_score,
-                "compliance_score": compliance_score,
-                "status_color": self._get_status_color(risk_level),
-                "client_recommendation": "Avoid" if risk_score > 70 else "Proceed with caution" if risk_score > 40 else "Safe to engage"
-            },
-            "financial_impact": {
-                "potential_fines": f"${random.randint(500000, 5000000):,}",
-                "legal_costs": f"${random.randint(100000, 500000):,}",
-                "lawsuit_probability": f"{risk_score}%",
-                "insurance_impact": lawsuit_risk
-            },
-            "client_protection": {
-                "contract_clauses": ["Liability caps", "Compliance warranties", "Indemnification"],
-                "pricing_adjustment": f"{max(0, (risk_score - 30) * 2)}% risk premium",
-                "engagement_terms": "Require compliance audit" if risk_score > 60 else "Standard terms"
-            },
-            "recommendations": {
-                "immediate_actions": ["Client risk assessment", "Contract protection review"],
-                "ongoing_protection": ["Monthly compliance checks", "Insurance review"]
-            },
-            "executive_summary": f"Client presents {risk_level.lower()} liability risk. {lawsuit_risk} probability of compliance violations requiring enhanced contract protection."
+            "compliance_score": compliance_score,
+            "investor_score": investor_score,
+            "risk_level": risk_level,
+            "stage_assessment": f"For {stage} stage, focus on foundational compliance elements",
+            "investor_readiness": "Conditional - address key gaps for investor confidence",
+            "competitive_advantages": [
+                "Proactive compliance approach shows maturity",
+                "Risk mitigation attracts conservative investors",
+                "Compliance-first culture enables enterprise sales"
+            ],
+            "key_risks": [
+                "Privacy policy gaps could block data collection",
+                "Industry regulations may limit market access",
+                "Investor due diligence could reveal compliance gaps"
+            ],
+            "recommendations": recommendations,
+            "benchmarks": {
+                "industry_percentile": max(25, compliance_score - 10),
+                "time_to_compliance": "8-12 weeks" if compliance_score < 60 else "4-6 weeks",
+                "estimated_investment": "$25,000 - $45,000" if compliance_score < 60 else "$15,000 - $25,000",
+                "success_probability": f"{min(85, max(35, investor_score + 10))}%"
+            }
         }
     
-    def _seller_analysis(self, data, risk_score, compliance_score, risk_level):
-        return {
-            "risk_assessment": {
-                "risk_level": risk_level,
-                "risk_score": risk_score,
-                "compliance_score": compliance_score,
-                "status_color": self._get_status_color(risk_level),
-                "sales_impact": "Compliance gap may slow enterprise sales"
-            },
-            "financial_impact": {
-                "potential_fines": f"${random.randint(100000, 1000000):,}",
-                "sales_impact": f"{random.randint(20, 50)}% longer sales cycles",
-                "deal_loss_risk": f"{risk_score // 2}%",
-                "compliance_investment": f"${random.randint(50000, 150000):,}"
-            },
-            "sales_enablement": {
-                "client_education": ["Compliance training materials", "Risk mitigation guides"],
-                "competitive_advantage": "Compliance-first positioning",
-                "deal_protection": ["Liability limitations", "Shared responsibility model"]
-            },
-            "recommendations": {
-                "immediate_actions": ["Create compliance materials", "Train sales team"],
-                "market_positioning": ["Compliance leader", "Risk-aware provider"]
-            },
-            "executive_summary": f"Compliance gaps present {risk_level.lower()} sales risk. Client education and positioning can turn compliance into competitive advantage."
-        }
-    
-    def _get_risk_level(self, risk_score):
-        if risk_score >= 80: return "CRITICAL"
-        elif risk_score >= 60: return "HIGH"
-        elif risk_score >= 40: return "MEDIUM"
-        else: return "LOW"
-    
-    def _get_status_color(self, risk_level):
-        colors = {"CRITICAL": "#dc2626", "HIGH": "#ea580c", "MEDIUM": "#f59e0b", "LOW": "#10b981"}
-        return colors.get(risk_level, "#6b7280")
+    def _generate_recommendations(self, startup_data, compliance_score):
+        """Generate stage and industry-appropriate recommendations"""
+        recommendations = []
+        
+        # Always needed foundational items
+        recommendations.append({
+            "priority": "high",
+            "title": "Privacy Policy & Terms of Service",
+            "description": "Implement comprehensive privacy policy and terms of service tailored to your AI system",
+            "timeline": "2-3 weeks",
+            "cost": "$2,500 - $4,000",
+            "impact": "Required for legal data collection and investor confidence"
+        })
+        
+        recommendations.append({
+            "priority": "high",
+            "title": "Data Processing Agreements",
+            "description": "Create standardized customer data processing agreements",
+            "timeline": "1-2 weeks",
+            "cost": "$1,200 - $2,000",
+            "impact": "Enables B2B customer trust and contract execution"
+        })
+        
+        # Industry-specific recommendations
+        industries = startup_data.get('industries', [])
+        
+        if 'healthcare' in industries or 'health' in startup_data.get('dataTypes', []):
+            recommendations.append({
+                "priority": "high",
+                "title": "HIPAA Compliance Assessment",
+                "description": "Healthcare data requires HIPAA compliance evaluation and implementation",
+                "timeline": "6-8 weeks",
+                "cost": "$12,000 - $18,000",
+                "impact": "Critical for healthcare market access - required by all health customers"
+            })
+        
+        if 'finance' in industries or 'financial' in startup_data.get('dataTypes', []):
+            recommendations.append({
+                "priority": "high",
+                "title": "Financial Services Compliance",
+                "description": "SOX, PCI DSS, and financial regulation compliance assessment",
+                "timeline": "8-12 weeks",
+                "cost": "$15,000 - $25,000",
+                "impact": "Required for financial services customers and reduces liability"
+            })
+        
+        if 'hr' in industries or any(use_case in ['decision', 'automation'] for use_case in startup_data.get('useCases', [])):
+            recommendations.append({
+                "priority": "high",
+                "title": "Algorithmic Bias Audit",
+                "description": "Third-party bias testing required for hiring/decision-making AI",
+                "timeline": "3-4 weeks",
+                "cost": "$6,000 - $10,000",
+                "impact": "VC requirement - 89% of investors require bias audits for decision AI"
+            })
+        
+        # Geographic compliance
+        regions = startup_data.get('regions', [])
+        if 'eu' in regions:
+            recommendations.append({
+                "priority": "medium",
+                "title": "GDPR Compliance Framework",
+                "description": "Implement GDPR-compliant data handling for European operations",
+                "timeline": "6-8 weeks",
+                "cost": "$10,000 - $15,000",
+                "impact": "Required for EU market - up to 4% revenue fines for violations"
+            })
+        
+        # Stage-based recommendations
+        stage = startup_data.get('fundingStage', '')
+        fundraising = startup_data.get('fundraising', '')
+        
+        if stage in ['series-a', 'series-b'] or fundraising in ['0-6', '6-12']:
+            recommendations.append({
+                "priority": "medium",
+                "title": "SOC2 Type II Certification",
+                "description": "Security certification increasingly required by enterprise customers and VCs",
+                "timeline": "3-4 months",
+                "cost": "$12,000 - $20,000",
+                "impact": "25% valuation premium with certification, required for enterprise sales"
+            })
+        
+        # Return top 5 recommendations
+        return recommendations[:5]
+
 
 # Initialize AI agent
-analysis_agent = ComprehensiveAnalysisAgent()
+compliance_agent = ComplianceStrategistAgent(CLAUDE_API_KEY)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
-
-@app.route('/wizard')
-def wizard():
-    return render_template('wizard.html')
-
-@app.route('/api/demo-scenarios')
-def get_demo_scenarios():
-    return jsonify(DEMO_SCENARIOS)
-
-@app.route('/api/analytics-dashboard')
-def get_analytics_dashboard():
-    return jsonify(ANALYTICS_DATA)
-
-@app.route('/api/analyze', methods=['POST'])
-def analyze_compliance():
-    data = request.json
-    use_demo = data.get('use_demo', False)
-    persona = data.get('persona', 'entrepreneur')
+# Helper functions
+def calculate_benchmarks(compliance_score, investor_score, startup_data):
+    """Calculate industry benchmarks for comparison"""
     
-    if use_demo:
-        demo_type = data.get('demo_type', persona)
-        scenarios = DEMO_SCENARIOS.get(demo_type, DEMO_SCENARIOS['entrepreneur'])
-        demo_data = random.choice(scenarios)
+    # Industry percentile based on compliance score
+    industry_percentile = max(15, min(95, compliance_score - 5))
+    
+    # Time to compliance based on current score
+    if compliance_score >= 70:
+        time_to_compliance = "4-6 weeks"
+    elif compliance_score >= 50:
+        time_to_compliance = "8-12 weeks"
+    else:
+        time_to_compliance = "12-20 weeks"
+    
+    # Investment estimate based on gaps
+    if compliance_score >= 70:
+        investment_range = "$8,000 - $15,000"
+    elif compliance_score >= 50:
+        investment_range = "$15,000 - $30,000"
+    else:
+        investment_range = "$30,000 - $50,000"
+    
+    # Success probability based on investor score
+    success_probability = f"{min(90, max(25, investor_score + 15))}%"
+    
+    return {
+        "industry_percentile": f"{industry_percentile}th",
+        "time_to_compliance": time_to_compliance,
+        "estimated_investment": investment_range,
+        "success_probability": success_probability
+    }
+
+def generate_executive_summary(analysis_data, startup_data):
+    """Generate executive summary from analysis"""
+    
+    return {
+        "compliance_score": analysis_data.get("compliance_score", 50),
+        "investor_score": analysis_data.get("investor_score", 40),
+        "risk_level": analysis_data.get("risk_level", "MEDIUM"),
+        "investment_readiness": analysis_data.get("investor_readiness", "Conditional"),
+        "key_recommendations": analysis_data.get("recommendations", [])[:3],
+        "estimated_investment": analysis_data.get("benchmarks", {}).get("estimated_investment", "$20,000 - $35,000"),
+        "timeline_to_readiness": analysis_data.get("benchmarks", {}).get("time_to_compliance", "8-12 weeks"),
+        "competitive_positioning": "Compliance-forward approach differentiates from 73% of AI startups"
+    }
+
+# Routes
+@app.route('/', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "service": "FounderShield API",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat(),
+        "claude_api_available": bool(CLAUDE_API_KEY)
+    })
+
+@app.route('/api/analyze-compliance', methods=['POST'])
+def analyze_compliance():
+    """Main compliance analysis endpoint"""
+    try:
+        # Get request data
+        data = request.get_json()
         
-        # Return demo analysis with persona focus
-        return jsonify({
-            "risk_assessment": {
-                "risk_level": demo_data['risk_level'],
-                "risk_score": demo_data['risk_score'],
-                "compliance_score": demo_data['compliance_score'],
-                "status_color": "#dc2626" if demo_data['risk_level'] == "CRITICAL" else "#10b981"
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Validate required fields
+        required_fields = ['companyName', 'fundingStage', 'aiDescription']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        
+        if missing_fields:
+            return jsonify({
+                "error": f"Missing required fields: {', '.join(missing_fields)}"
+            }), 400
+        
+        logger.info(f"Starting analysis for {data.get('companyName')} ({data.get('fundingStage')} stage)")
+        
+        # Run AI agent analysis
+        analysis = compliance_agent.analyze_startup_profile(data)
+        
+        # Generate analysis ID
+        analysis_id = f"FA-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Create comprehensive result
+        result = {
+            "analysis_id": analysis_id,
+            "timestamp": datetime.now().isoformat(),
+            "company_profile": {
+                "name": data.get('companyName'),
+                "stage": data.get('fundingStage'),
+                "team_size": data.get('teamSize'),
+                "industries": data.get('industries', []),
+                "regions": data.get('regions', []),
+                "ai_description": data.get('aiDescription')
             },
-            "demo_data": demo_data,
-            "persona_insights": get_persona_insights(persona, demo_data),
-            "executive_summary": f"{demo_data['name']} analysis complete for {persona} workflow."
+            "compliance_analysis": analysis,
+            "executive_summary": generate_executive_summary(analysis, data),
+            "benchmarks": calculate_benchmarks(
+                analysis.get('compliance_score', 50),
+                analysis.get('investor_score', 40),
+                data
+            )
+        }
+        
+        logger.info(f"Analysis completed for {data.get('companyName')} - Compliance: {analysis.get('compliance_score')}, Investor: {analysis.get('investor_score')}")
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in compliance analysis: {str(e)}")
+        return jsonify({
+            "error": "Analysis failed",
+            "message": "Unable to complete analysis. Please try again."
+        }), 500
+
+@app.route('/api/generate-roadmap', methods=['POST'])
+def generate_roadmap():
+    """Generate implementation roadmap based on analysis"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('analysis_id'):
+            return jsonify({"error": "Analysis ID required"}), 400
+        
+        # Get assessment data
+        assessment_data = data.get('assessment_data', {})
+        
+        # Generate roadmap based on startup stage and industry
+        roadmap = generate_compliance_roadmap(assessment_data)
+        
+        logger.info(f"Roadmap generated for analysis {data.get('analysis_id')}")
+        return jsonify(roadmap)
+        
+    except Exception as e:
+        logger.error(f"Error generating roadmap: {str(e)}")
+        return jsonify({
+            "error": "Roadmap generation failed",
+            "message": "Unable to generate roadmap. Please try again."
+        }), 500
+
+def generate_compliance_roadmap(assessment_data):
+    """Generate a detailed implementation roadmap"""
+    
+    stage = assessment_data.get('fundingStage', 'seed')
+    industries = assessment_data.get('industries', [])
+    regions = assessment_data.get('regions', [])
+    
+    phases = []
+    total_cost = 0
+    
+    # Phase 1: Foundation (Always needed)
+    foundation_tasks = [
+        {
+            "task": "Privacy Policy & Terms of Service",
+            "description": "Implement comprehensive privacy policy tailored to AI system",
+            "effort": "2-3 weeks",
+            "cost": 3000,
+            "dependencies": []
+        },
+        {
+            "task": "Data Processing Agreements",
+            "description": "Create customer data processing agreements",
+            "effort": "1-2 weeks",
+            "cost": 1500,
+            "dependencies": ["Privacy Policy"]
+        }
+    ]
+    
+    phases.append({
+        "phase": "Foundation (Weeks 1-4)",
+        "priority": "high",
+        "description": "Essential legal and policy framework",
+        "tasks": foundation_tasks
+    })
+    
+    phase1_cost = sum(task['cost'] for task in foundation_tasks)
+    total_cost += phase1_cost
+    
+    # Phase 2: Industry-Specific Compliance
+    industry_tasks = []
+    
+    if 'healthcare' in industries:
+        industry_tasks.append({
+            "task": "HIPAA Compliance Implementation",
+            "description": "Healthcare data protection and privacy compliance",
+            "effort": "6-8 weeks",
+            "cost": 15000,
+            "dependencies": ["Data Processing Agreements"]
         })
     
-    # Real analysis with persona consideration
+    if 'finance' in industries:
+        industry_tasks.append({
+            "task": "Financial Services Compliance",
+            "description": "SOX, PCI DSS, and financial regulation compliance",
+            "effort": "8-10 weeks",
+            "cost": 18000,
+            "dependencies": ["Foundation phase"]
+        })
+    
+    if 'hr' in industries:
+        industry_tasks.append({
+            "task": "Algorithmic Bias Audit",
+            "description": "Third-party bias testing and certification",
+            "effort": "3-4 weeks",
+            "cost": 8000,
+            "dependencies": ["Privacy Policy"]
+        })
+    
+    if 'eu' in regions:
+        industry_tasks.append({
+            "task": "GDPR Compliance Framework",
+            "description": "European data protection regulation compliance",
+            "effort": "6-8 weeks",
+            "cost": 12000,
+            "dependencies": ["Data Processing Agreements"]
+        })
+    
+    if industry_tasks:
+        phases.append({
+            "phase": "Industry Compliance (Weeks 5-12)",
+            "priority": "high",
+            "description": "Industry and region-specific requirements",
+            "tasks": industry_tasks
+        })
+        
+        phase2_cost = sum(task['cost'] for task in industry_tasks)
+        total_cost += phase2_cost
+    
+    # Phase 3: Investment Readiness (for Series A+ or active fundraising)
+    if stage in ['series-a', 'series-b'] or assessment_data.get('fundraising') in ['0-6', '6-12']:
+        investment_tasks = [
+            {
+                "task": "SOC2 Type II Certification",
+                "description": "Security certification for enterprise customers",
+                "effort": "12-16 weeks",
+                "cost": 15000,
+                "dependencies": ["Industry Compliance"]
+            },
+            {
+                "task": "Investor Documentation Package",
+                "description": "Complete compliance documentation for due diligence",
+                "effort": "2-3 weeks",
+                "cost": 4000,
+                "dependencies": ["All previous phases"]
+            },
+            {
+                "task": "Legal Review & Validation",
+                "description": "External legal counsel review of all documentation",
+                "effort": "2-3 weeks",
+                "cost": 6000,
+                "dependencies": ["Investor Documentation"]
+            }
+        ]
+        
+        phases.append({
+            "phase": "Investment Readiness (Weeks 13-20)",
+            "priority": "medium",
+            "description": "Preparation for due diligence and enterprise sales",
+            "tasks": investment_tasks
+        })
+        
+        phase3_cost = sum(task['cost'] for task in investment_tasks)
+        total_cost += phase3_cost
+    
+    # Calculate timeline
+    max_timeline = 20 if len(phases) > 2 else 12 if len(phases) > 1 else 4
+    
+    return {
+        "roadmap_id": f"RM-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+        "company": assessment_data.get('companyName', 'AI Startup'),
+        "generated_date": datetime.now().isoformat(),
+        "phases": phases,
+        "summary": {
+            "total_phases": len(phases),
+            "total_timeline": f"{max_timeline} weeks",
+            "total_investment": f"${total_cost:,}",
+            "critical_path": "Privacy Policy → Industry Compliance → Investor Readiness"
+        },
+        "milestone_gates": [
+            "Foundation compliance operational",
+            "Industry-specific requirements met",
+            "Investor due diligence ready"
+        ],
+        "success_metrics": [
+            "Legal risk reduced by 80%",
+            "Investor confidence increased",
+            "Enterprise customer ready",
+            "Regulatory audit prepared"
+        ]
+    }
+
+@app.route('/api/benchmark-data', methods=['POST'])
+def get_benchmark_data():
+    """Get industry benchmark data for comparison"""
     try:
-        result = analysis_agent.analyze_with_persona(data, persona)
-        return jsonify(result)
+        data = request.get_json() or {}
+        
+        industry = data.get('industry', 'general')
+        stage = data.get('stage', 'seed')
+        
+        # Industry-specific benchmarks
+        industry_benchmarks = {
+            "healthcare": {"avg_score": 52, "avg_investment": "$35,000", "violation_rate": "18%"},
+            "finance": {"avg_score": 58, "avg_investment": "$42,000", "violation_rate": "22%"},
+            "hr": {"avg_score": 48, "avg_investment": "$28,000", "violation_rate": "15%"},
+            "retail": {"avg_score": 62, "avg_investment": "$22,000", "violation_rate": "10%"},
+            "education": {"avg_score": 55, "avg_investment": "$25,000", "violation_rate": "12%"},
+            "general": {"avg_score": 54, "avg_investment": "$30,000", "violation_rate": "14%"}
+        }
+        
+        # Stage-specific benchmarks
+        stage_benchmarks = {
+            "pre-seed": {"compliance_score": 35, "investment": "$8,000", "timeline": "6-8 weeks"},
+            "seed": {"compliance_score": 48, "investment": "$18,000", "timeline": "8-12 weeks"},
+            "series-a": {"compliance_score": 67, "investment": "$35,000", "timeline": "12-16 weeks"},
+            "series-b": {"compliance_score": 78, "investment": "$65,000", "timeline": "16-24 weeks"},
+            "growth": {"compliance_score": 85, "investment": "$100,000", "timeline": "24-32 weeks"}
+        }
+        
+        current_industry = industry_benchmarks.get(industry, industry_benchmarks["general"])
+        current_stage = stage_benchmarks.get(stage, stage_benchmarks["seed"])
+        
+        benchmarks = {
+            "industry_averages": {
+                "compliance_score": current_industry["avg_score"],
+                "average_investment": current_industry["avg_investment"],
+                "violation_rate": current_industry["violation_rate"]
+            },
+            "stage_comparison": current_stage,
+            "success_factors": [
+                "Proactive compliance increases fundraising success by 45%",
+                "Companies with bias audits raise 30% more capital on average",
+                "GDPR compliance adds 15-20% valuation premium for EU market",
+                "SOC2 certification reduces enterprise sales cycle by 40%",
+                "Privacy-first startups see 25% higher customer trust scores"
+            ],
+            "market_insights": {
+                "regulatory_trend": "Increasing enforcement with 35% more AI-related fines in 2024",
+                "investor_focus": "89% of VCs now require compliance review in due diligence",
+                "competitive_advantage": "Only 27% of AI startups have proactive compliance",
+                "enterprise_requirement": "92% of Fortune 500 companies require vendor compliance certification"
+            }
+        }
+        
+        return jsonify(benchmarks)
+        
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error fetching benchmark data: {str(e)}")
+        return jsonify({
+            "error": "Benchmark data unavailable",
+            "message": "Unable to fetch benchmark data. Please try again."
+        }), 500
 
-def get_persona_insights(persona, demo_data):
-    if persona == 'entrepreneur':
-        return {
-            "funding_impact": demo_data.get('funding_advantage', 'Positive impact on fundraising'),
-            "investor_confidence": demo_data.get('investor_confidence', 'High investor appeal'),
-            "competitive_advantage": "Compliance as differentiator"
-        }
-    elif persona == 'consultant':
-        return {
-            "liability_assessment": demo_data.get('lawsuit_probability', 'Risk assessment complete'),
-            "contract_protection": demo_data.get('protection_needed', 'Standard protections sufficient'),
-            "engagement_recommendation": demo_data['status']
-        }
-    else:
-        return {
-            "sales_impact": demo_data.get('client_education', 'Client education recommended'),
-            "liability_protection": demo_data.get('liability_protection', 'Moderate protection needed'),
-            "market_positioning": "Compliance-aware provider"
-        }
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        "error": "Endpoint not found",
+        "message": "The requested endpoint does not exist"
+    }), 404
 
-@app.route('/api/generate-report', methods=['POST'])
-def generate_report():
-    data = request.json
-    analysis_data = data.get('analysis_data', {})
-    company_name = data.get('company_name', 'Demo Company')
-    
-    # Generate PDF (simplified)
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    styles = getSampleStyleSheet()
-    story = []
-    
-    # Title
-    story.append(Paragraph(f"NexusAI Compliance Report - {company_name}", styles['Title']))
-    story.append(Spacer(1, 20))
-    
-    # Analysis summary
-    story.append(Paragraph("Executive Summary", styles['Heading2']))
-    summary = analysis_data.get('executive_summary', 'Compliance analysis completed.')
-    story.append(Paragraph(summary, styles['Normal']))
-    story.append(Spacer(1, 15))
-    
-    # Risk assessment
-    risk_data = analysis_data.get('risk_assessment', {})
-    story.append(Paragraph("Risk Assessment", styles['Heading2']))
-    story.append(Paragraph(f"Risk Level: {risk_data.get('risk_level', 'N/A')}", styles['Normal']))
-    story.append(Paragraph(f"Risk Score: {risk_data.get('risk_score', 'N/A')}/100", styles['Normal']))
-    story.append(Paragraph(f"Compliance Score: {risk_data.get('compliance_score', 'N/A')}/100", styles['Normal']))
-    
-    doc.build(story)
-    buffer.seek(0)
-    
-    import tempfile
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-        tmp_file.write(buffer.getvalue())
-        tmp_file_path = tmp_file.name
-    
-    return send_file(
-        tmp_file_path,
-        as_attachment=True,
-        download_name=f"NexusAI_Report_{company_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf",
-        mimetype='application/pdf'
-    )
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({
+        "error": "Internal server error",
+        "message": "An unexpected error occurred"
+    }), 500
+
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({
+        "error": "Bad request",
+        "message": "Invalid request data"
+    }), 400
+
+# Run the application
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', port=port, debug=debug)
