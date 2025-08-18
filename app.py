@@ -38,6 +38,118 @@ market_cache = {
     'vc_activity': []
 }
 
+# Comprehensive VC Database
+REAL_VCS = [
+    {
+        "id": 1,
+        "name": "Andreessen Horowitz",
+        "type": "Corporate VC",
+        "geography": ["🇺🇸 USA", "🌍 Global"],
+        "checks": "$5M to $50M",
+        "stages": ["2. Seed", "3. Series A", "4. Series B"],
+        "industries": ["AI/ML", "Crypto", "B2B SaaS"],
+        "openRate": "95%",
+        "logo": "a16z",
+        "founded": 2009,
+        "description": "We invest in bold entrepreneurs building the future through technology",
+        "recentDeals": ["Character.AI $150M", "Replit $97M", "Tome $43M"],
+        "portfolio": ["Coinbase", "GitHub", "Slack", "Airbnb", "Meta"],
+        "website": "a16z.com",
+        "thesis": ["AI/ML infrastructure", "Developer tools", "Crypto/Web3"],
+        "partners": ["Marc Andreessen", "Ben Horowitz", "Chris Dixon"]
+    },
+    {
+        "id": 2,
+        "name": "Sequoia Capital",
+        "type": "Corporate VC",
+        "geography": ["🇺🇸 USA", "🇪🇺 Europe"],
+        "checks": "$1M to $100M",
+        "stages": ["1. Pre-seed", "2. Seed", "3. Series A"],
+        "industries": ["Enterprise", "Consumer", "Healthcare"],
+        "openRate": "92%",
+        "logo": "SEQ",
+        "founded": 1972,
+        "description": "We help daring founders build legendary companies",
+        "recentDeals": ["OpenAI $10B", "Stripe $6.5B", "Klarna $800M"],
+        "portfolio": ["Apple", "Google", "WhatsApp", "Zoom"],
+        "website": "sequoiacap.com",
+        "thesis": ["Market-creating companies", "Exceptional founders", "Transformative technology"],
+        "partners": ["Roelof Botha", "Alfred Lin", "Jim Goetz"]
+    },
+    {
+        "id": 3,
+        "name": "Accel",
+        "type": "Corporate VC",
+        "geography": ["🇺🇸 USA", "🇪🇺 Europe"],
+        "checks": "$10M to $40M",
+        "stages": ["3. Series A", "4. Series B"],
+        "industries": ["SaaS", "Marketplace", "Developer Tools"],
+        "openRate": "88%",
+        "logo": "ACC",
+        "founded": 1983,
+        "description": "We partner with exceptional founders from the earliest stages",
+        "recentDeals": ["PostHog $12M", "Webflow $140M", "UiPath $225M"],
+        "portfolio": ["Slack", "Dropbox", "Atlassian", "Spotify"],
+        "website": "accel.com",
+        "thesis": ["Technical founders", "Product-market fit", "Scalable business models"],
+        "partners": ["Ping Li", "Dan Levine", "Vas Natarajan"]
+    },
+    {
+        "id": 4,
+        "name": "GV (Google Ventures)",
+        "type": "Corporate VC",
+        "geography": ["🇺🇸 USA", "🌍 Global"],
+        "checks": "$3M to $25M",
+        "stages": ["2. Seed", "3. Series A", "4. Series B"],
+        "industries": ["AI/ML", "Healthcare", "Climate"],
+        "openRate": "90%",
+        "logo": "GV",
+        "founded": 2009,
+        "description": "We invest in startups with exceptional teams tackling big problems",
+        "recentDeals": ["Anthropic $300M", "Verily $1B", "Waymo $2.5B"],
+        "portfolio": ["Uber", "Nest", "23andMe", "Medium"],
+        "website": "gv.com",
+        "thesis": ["Technical innovation", "AI applications", "Healthcare tech"],
+        "partners": ["David Krane", "Joe Kraus", "Bill Maris"]
+    },
+    {
+        "id": 5,
+        "name": "First Round Capital",
+        "type": "Angel network",
+        "geography": ["🇺🇸 USA", "🇨🇦 Canada"],
+        "checks": "$1M to $10M",
+        "stages": ["1. Pre-seed", "2. Seed", "3. Series A"],
+        "industries": ["B2B SaaS", "Developer Tools", "Fintech"],
+        "openRate": "85%",
+        "logo": "FRC",
+        "founded": 2004,
+        "description": "We believe bold entrepreneurs deserve insider access",
+        "recentDeals": ["Retool $45M", "Roam $9M", "Hex $52M"],
+        "portfolio": ["Uber", "Square", "Notion", "Warby Parker"],
+        "website": "firstround.com",
+        "thesis": ["Technical founders", "Product innovation", "Platform businesses"],
+        "partners": ["Josh Kopelman", "Bill Trenchard", "Phin Barnes"]
+    },
+    {
+        "id": 6,
+        "name": "Lightspeed Venture",
+        "type": "Corporate VC",
+        "geography": ["🇺🇸 USA", "🇮🇳 India"],
+        "checks": "$5M to $30M",
+        "stages": ["2. Seed", "3. Series A", "4. Series B"],
+        "industries": ["Enterprise", "Consumer", "Gaming"],
+        "openRate": "87%",
+        "logo": "LSV",
+        "founded": 2000,
+        "description": "We partner with exceptional entrepreneurs",
+        "recentDeals": ["Epic Games $1B", "Snap $485M", "Affirm $300M"],
+        "portfolio": ["Snapchat", "AppDynamics", "Nutanix"],
+        "website": "lightspeedvp.com",
+        "thesis": ["Consumer platforms", "Enterprise software", "Gaming"],
+        "partners": ["Jeremy Liew", "Nicole Quinn", "Gaurav Gupta"]
+    }
+]
+
 def extract_text_from_pdf(file_content):
     """Extract text from PDF file"""
     try:
@@ -66,9 +178,23 @@ def get_live_news():
             data = response.json()
             news_items = []
             for article in data.get('articles', [])[:6]:
+                # Convert publishedAt to relative time
+                pub_time = article.get('publishedAt', '')
+                try:
+                    pub_datetime = datetime.fromisoformat(pub_time.replace('Z', '+00:00'))
+                    time_diff = datetime.now() - pub_datetime.replace(tzinfo=None)
+                    if time_diff.days > 0:
+                        time_str = f"{time_diff.days} days ago"
+                    elif time_diff.seconds > 3600:
+                        time_str = f"{time_diff.seconds // 3600} hours ago"
+                    else:
+                        time_str = f"{time_diff.seconds // 60} minutes ago"
+                except:
+                    time_str = "recently"
+                
                 news_items.append({
                     'title': article.get('title', ''),
-                    'time': article.get('publishedAt', ''),
+                    'time': time_str,
                     'source': article.get('source', {}).get('name', ''),
                     'url': article.get('url', '')
                 })
@@ -96,7 +222,7 @@ def get_market_intelligence():
         # This would integrate with real APIs like:
         # - Crunchbase API (requires paid subscription)
         # - PitchBook API (enterprise)
-        # - For demo, we'll use simulated real-time data
+        # For demo, we'll use simulated real-time data
         
         current_time = datetime.now()
         
@@ -213,64 +339,6 @@ def analyze_with_claude(content: str, company_data: Dict = None) -> Dict:
 def find_vc_matches(analysis: Dict) -> List[Dict]:
     """Find VC matches based on company analysis"""
     try:
-        # Real VC database (you could expand this with actual VC data)
-        vc_database = [
-            {
-                "id": 1,
-                "name": "Andreessen Horowitz",
-                "type": "Corporate VC",
-                "geography": ["🇺🇸 USA", "🌍 Global"],
-                "checks": "$5M to $50M",
-                "stages": ["2. Seed", "3. Series A", "4. Series B"],
-                "industries": ["AI/ML", "Crypto", "B2B SaaS"],
-                "openRate": "95%",
-                "logo": "a16z",
-                "founded": 2009,
-                "description": "We invest in bold entrepreneurs building the future through technology",
-                "recentDeals": ["Character.AI $150M", "Replit $97M", "Tome $43M"],
-                "portfolio": ["Coinbase", "GitHub", "Slack", "Airbnb", "Meta"],
-                "website": "a16z.com",
-                "thesis": ["AI/ML infrastructure", "Developer tools", "Crypto/Web3"],
-                "partners": ["Marc Andreessen", "Ben Horowitz", "Chris Dixon"]
-            },
-            {
-                "id": 2,
-                "name": "Sequoia Capital",
-                "type": "Corporate VC",
-                "geography": ["🇺🇸 USA", "🇪🇺 Europe"],
-                "checks": "$1M to $100M",
-                "stages": ["1. Pre-seed", "2. Seed", "3. Series A"],
-                "industries": ["Enterprise", "Consumer", "Healthcare"],
-                "openRate": "92%",
-                "logo": "SEQ",
-                "founded": 1972,
-                "description": "We help daring founders build legendary companies",
-                "recentDeals": ["OpenAI $10B", "Stripe $6.5B", "Klarna $800M"],
-                "portfolio": ["Apple", "Google", "WhatsApp", "Zoom"],
-                "website": "sequoiacap.com",
-                "thesis": ["Market-creating companies", "Exceptional founders", "Transformative technology"],
-                "partners": ["Roelof Botha", "Alfred Lin", "Jim Goetz"]
-            },
-            {
-                "id": 3,
-                "name": "Accel",
-                "type": "Corporate VC",
-                "geography": ["🇺🇸 USA", "🇪🇺 Europe"],
-                "checks": "$10M to $40M",
-                "stages": ["3. Series A", "4. Series B"],
-                "industries": ["SaaS", "Marketplace", "Developer Tools"],
-                "openRate": "88%",
-                "logo": "ACC",
-                "founded": 1983,
-                "description": "We partner with exceptional founders from the earliest stages",
-                "recentDeals": ["PostHog $12M", "Webflow $140M", "UiPath $225M"],
-                "portfolio": ["Slack", "Dropbox", "Atlassian", "Spotify"],
-                "website": "accel.com",
-                "thesis": ["Technical founders", "Product-market fit", "Scalable business models"],
-                "partners": ["Ping Li", "Dan Levine", "Vas Natarajan"]
-            }
-        ]
-
         # Use Claude to generate matches and explanations
         match_prompt = f"""
         You are a VC matching expert. Based on this company analysis, rank and explain VC matches.
@@ -279,7 +347,7 @@ def find_vc_matches(analysis: Dict) -> List[Dict]:
         {json.dumps(analysis, indent=2)}
 
         VC Database:
-        {json.dumps(vc_database, indent=2)}
+        {json.dumps(REAL_VCS, indent=2)}
 
         Please provide a JSON response with the top 3 matches, including:
         {{
@@ -325,7 +393,7 @@ def find_vc_matches(analysis: Dict) -> List[Dict]:
                 # Combine VC data with match data
                 enriched_matches = []
                 for match in match_data.get('matches', []):
-                    vc_info = next((vc for vc in vc_database if vc['id'] == match['vc_id']), None)
+                    vc_info = next((vc for vc in REAL_VCS if vc['id'] == match['vc_id']), None)
                     if vc_info:
                         enriched_matches.append({
                             "vc": vc_info,
@@ -345,19 +413,19 @@ def find_vc_matches(analysis: Dict) -> List[Dict]:
         # Fallback matches if Claude parsing fails
         return [
             {
-                "vc": vc_database[0],
+                "vc": REAL_VCS[0],
                 "compatibility": 94,
                 "rationale": ["Strong AI/ML thesis alignment", "Portfolio synergy", "Stage fit"],
                 "explanation": "Excellent alignment based on investment thesis and portfolio companies."
             },
             {
-                "vc": vc_database[1],
+                "vc": REAL_VCS[1],
                 "compatibility": 89,
                 "rationale": ["Market-leading position", "Proven track record", "Geographic alignment"],
                 "explanation": "Strong strategic fit with proven enterprise software expertise."
             },
             {
-                "vc": vc_database[2],
+                "vc": REAL_VCS[2],
                 "compatibility": 87,
                 "rationale": ["SaaS specialization", "Technical founder support", "Stage alignment"],
                 "explanation": "Perfect match for technical B2B SaaS companies at growth stage."
@@ -396,7 +464,8 @@ def index():
             "/api/find-matches", 
             "/api/market-intelligence",
             "/api/vcs",
-            "/api/intro-request"
+            "/api/intro-request",
+            "/api/demo-scenario"
         ]
     })
 
@@ -467,24 +536,7 @@ def market_intelligence():
 def get_vcs():
     """Get VC database with filtering"""
     try:
-        # This would connect to a real VC database
-        # For now, returning curated VC data
-        vcs = [
-            {
-                "id": 1,
-                "name": "Andreessen Horowitz",
-                "type": "Corporate VC",
-                "geography": ["🇺🇸 USA", "🌍 Global"],
-                "checks": "$5M to $50M",
-                "stages": ["2. Seed", "3. Series A", "4. Series B"],
-                "industries": ["AI/ML", "Crypto", "B2B SaaS", "+18"],
-                "openRate": "95%",
-                "logo": "a16z",
-                "founded": 2009,
-                "description": "We invest in bold entrepreneurs building the future through technology"
-            },
-            # Add more VCs here...
-        ]
+        vcs = REAL_VCS
         
         # Apply filters if provided
         sector = request.args.get('sector')
@@ -566,7 +618,18 @@ def demo_scenario():
                 "revenue": "$2.1M ARR",
                 "growth_rate": "25% MoM",
                 "customers": "45 enterprise clients"
-            }
+            },
+            "competitive_advantages": [
+                "Proprietary ML algorithms",
+                "Enterprise-grade security",
+                "No-code interface"
+            ],
+            "investment_highlights": [
+                "Strong product-market fit",
+                "Experienced team",
+                "Large addressable market",
+                "Proven traction"
+            ]
         }
 
         # Find matches for demo company
