@@ -1,32 +1,4 @@
-@app.route('/api/demo-scenario', methods=['POST'])
-def demo_scenario():
-    """Load complete demo scenario with generated deck"""
-    try:
-        # Generate realistic demo company
-        demo_response = generate_demo_deck()
-        if hasattr(demo_response, 'get_json'):
-            demo_data = demo_response.get_json()
-        else:
-            demo_data = demo_response
-        
-        if demo_data.get('status') != 'success':
-            raise Exception("Failed to generate demo deck")
-            
-        analysis = demo_data['analysis']
-        
-        # Find matches for demo company
-        matches = find_vc_matches(analysis)
-
-        return jsonify({
-            "status": "success",
-            "analysis": analysis,
-            "matches": matches,
-            "demo_mode": True
-        })
-
-    except Exception as e:
-        logger.error(f"Demo scenario error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500import os
+import os
 import json
 import requests
 import asyncio
@@ -681,6 +653,95 @@ def find_vc_matches(analysis: Dict) -> List[Dict]:
         logger.error(f"VC matching error: {e}")
         return []
 
+def generate_demo_deck():
+    """Generate a realistic demo pitch deck using Claude"""
+    try:
+        # Generate random company data
+        company_types = [
+            {"sector": "AI/ML", "business": "AI-powered customer service automation", "name": "ServiceMind"},
+            {"sector": "Fintech", "business": "Blockchain-based cross-border payments", "name": "PayFlow"},
+            {"sector": "Healthcare", "business": "AI diagnostic platform for radiology", "name": "RadiAI"},
+            {"sector": "Climate", "business": "Carbon capture technology for manufacturing", "name": "CarbonVault"},
+            {"sector": "SaaS", "business": "No-code workflow automation platform", "name": "FlowBuilder"},
+            {"sector": "Consumer", "business": "AR-powered virtual shopping assistant", "name": "ShopLens"}
+        ]
+        
+        import random
+        company = random.choice(company_types)
+        
+        prompt = f"""
+        Generate a realistic pitch deck analysis for a {company['sector']} startup called "{company['name']}" 
+        that provides {company['business']}.
+
+        Create realistic metrics, team background, market size, traction, and funding details.
+        Make it feel like a real Series A company with believable numbers.
+
+        Return ONLY a JSON object with this exact structure:
+        {{
+            "company_name": "{company['name']}",
+            "business_model": "{company['business']}",
+            "market_size": "realistic TAM number with description",
+            "revenue_model": "how they monetize",
+            "traction": "specific metrics like ARR, customers, growth",
+            "team_background": "realistic team experience",
+            "funding_stage": "Series A",
+            "funding_amount": "realistic amount like $12M-25M",
+            "use_of_funds": "how they'll use the money",
+            "competitive_advantages": ["advantage1", "advantage2", "advantage3"],
+            "key_metrics": {{
+                "revenue": "specific ARR or revenue",
+                "growth_rate": "percentage MoM or YoY",
+                "customers": "number of customers"
+            }},
+            "risk_factors": ["risk1", "risk2"],
+            "investment_highlights": ["highlight1", "highlight2", "highlight3"],
+            "sector": "{company['sector']}",
+            "geography": "realistic location like San Francisco, London, etc",
+            "confidence_score": 0.88,
+            "deck_summary": "Brief 2-3 sentence summary of what the deck contains"
+        }}
+        """
+
+        response = claude_client.messages.create(
+            model="claude-3-sonnet-20240229",
+            max_tokens=1500,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        analysis_text = response.content[0].text
+        
+        # Extract JSON
+        try:
+            start_idx = analysis_text.find('{')
+            end_idx = analysis_text.rfind('}') + 1
+            if start_idx != -1 and end_idx != -1:
+                json_str = analysis_text[start_idx:end_idx]
+                analysis = json.loads(json_str)
+            else:
+                raise ValueError("No JSON found")
+        except:
+            # Fallback if parsing fails
+            analysis = {
+                "company_name": company['name'],
+                "business_model": company['business'],
+                "sector": company['sector'],
+                "funding_stage": "Series A",
+                "funding_amount": "$18M",
+                "confidence_score": 0.85,
+                "deck_summary": f"Pitch deck for {company['name']}, an innovative {company['sector']} company."
+            }
+
+        return jsonify({
+            "status": "success",
+            "analysis": analysis
+        })
+
+    except Exception as e:
+        logger.error(f"Demo deck generation error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 # Background thread to update market data
 def update_market_data():
     """Background thread to periodically update market data"""
@@ -842,94 +903,34 @@ def intro_request():
         logger.error(f"Intro request error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/api/generate-demo-deck', methods=['POST'])
-def generate_demo_deck():
-    """Generate a realistic demo pitch deck using Claude"""
+@app.route('/api/demo-scenario', methods=['POST'])
+def demo_scenario():
+    """Load complete demo scenario with generated deck"""
     try:
-        # Generate random company data
-        company_types = [
-            {"sector": "AI/ML", "business": "AI-powered customer service automation", "name": "ServiceMind"},
-            {"sector": "Fintech", "business": "Blockchain-based cross-border payments", "name": "PayFlow"},
-            {"sector": "Healthcare", "business": "AI diagnostic platform for radiology", "name": "RadiAI"},
-            {"sector": "Climate", "business": "Carbon capture technology for manufacturing", "name": "CarbonVault"},
-            {"sector": "SaaS", "business": "No-code workflow automation platform", "name": "FlowBuilder"},
-            {"sector": "Consumer", "business": "AR-powered virtual shopping assistant", "name": "ShopLens"}
-        ]
+        # Generate realistic demo company
+        demo_response = generate_demo_deck()
+        if hasattr(demo_response, 'get_json'):
+            demo_data = demo_response.get_json()
+        else:
+            demo_data = demo_response
         
-        import random
-        company = random.choice(company_types)
+        if demo_data.get('status') != 'success':
+            raise Exception("Failed to generate demo deck")
+            
+        analysis = demo_data['analysis']
         
-        prompt = f"""
-        Generate a realistic pitch deck analysis for a {company['sector']} startup called "{company['name']}" 
-        that provides {company['business']}.
-
-        Create realistic metrics, team background, market size, traction, and funding details.
-        Make it feel like a real Series A company with believable numbers.
-
-        Return ONLY a JSON object with this exact structure:
-        {{
-            "company_name": "{company['name']}",
-            "business_model": "{company['business']}",
-            "market_size": "realistic TAM number with description",
-            "revenue_model": "how they monetize",
-            "traction": "specific metrics like ARR, customers, growth",
-            "team_background": "realistic team experience",
-            "funding_stage": "Series A",
-            "funding_amount": "realistic amount like $12M-25M",
-            "use_of_funds": "how they'll use the money",
-            "competitive_advantages": ["advantage1", "advantage2", "advantage3"],
-            "key_metrics": {{
-                "revenue": "specific ARR or revenue",
-                "growth_rate": "percentage MoM or YoY",
-                "customers": "number of customers"
-            }},
-            "risk_factors": ["risk1", "risk2"],
-            "investment_highlights": ["highlight1", "highlight2", "highlight3"],
-            "sector": "{company['sector']}",
-            "geography": "realistic location like San Francisco, London, etc",
-            "confidence_score": 0.88,
-            "deck_summary": "Brief 2-3 sentence summary of what the deck contains"
-        }}
-        """
-
-        response = claude_client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=1500,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        analysis_text = response.content[0].text
-        
-        # Extract JSON
-        try:
-            start_idx = analysis_text.find('{')
-            end_idx = analysis_text.rfind('}') + 1
-            if start_idx != -1 and end_idx != -1:
-                json_str = analysis_text[start_idx:end_idx]
-                analysis = json.loads(json_str)
-            else:
-                raise ValueError("No JSON found")
-        except:
-            # Fallback if parsing fails
-            analysis = {
-                "company_name": company['name'],
-                "business_model": company['business'],
-                "sector": company['sector'],
-                "funding_stage": "Series A",
-                "funding_amount": "$18M",
-                "confidence_score": 0.85,
-                "deck_summary": f"Pitch deck for {company['name']}, an innovative {company['sector']} company."
-            }
+        # Find matches for demo company
+        matches = find_vc_matches(analysis)
 
         return jsonify({
             "status": "success",
-            "analysis": analysis
+            "analysis": analysis,
+            "matches": matches,
+            "demo_mode": True
         })
 
     except Exception as e:
-        logger.error(f"Demo deck generation error: {e}")
+        logger.error(f"Demo scenario error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # Health check
