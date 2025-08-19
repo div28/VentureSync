@@ -33,7 +33,9 @@ REAL_VCS = [
         "description": "We invest in bold entrepreneurs building the future through technology",
         "recentDeals": ["Character.AI $150M", "Replit $97M", "Tome $43M"],
         "portfolio": ["Coinbase", "GitHub", "Slack", "Airbnb", "Meta"],
-        "website": "a16z.com"
+        "website": "a16z.com",
+        "email": "marc@a16z.com",
+        "partner": "Marc Andreessen"
     },
     {
         "id": 2,
@@ -49,7 +51,9 @@ REAL_VCS = [
         "description": "We help daring founders build legendary companies",
         "recentDeals": ["OpenAI $10B", "Stripe $6.5B", "Klarna $800M"],
         "portfolio": ["Apple", "Google", "WhatsApp", "Zoom"],
-        "website": "sequoiacap.com"
+        "website": "sequoiacap.com",
+        "email": "roelof@sequoiacap.com",
+        "partner": "Roelof Botha"
     },
     {
         "id": 3,
@@ -65,7 +69,9 @@ REAL_VCS = [
         "description": "We partner with exceptional founders from the earliest stages",
         "recentDeals": ["PostHog $12M", "Webflow $140M", "UiPath $225M"],
         "portfolio": ["Slack", "Dropbox", "Atlassian", "Spotify"],
-        "website": "accel.com"
+        "website": "accel.com",
+        "email": "ryan@accel.com",
+        "partner": "Ryan Sweeney"
     },
     {
         "id": 4,
@@ -81,7 +87,9 @@ REAL_VCS = [
         "description": "We invest in startups with exceptional teams tackling big problems",
         "recentDeals": ["Anthropic $300M", "Verily $1B", "Waymo $2.5B"],
         "portfolio": ["Uber", "Nest", "23andMe", "Medium"],
-        "website": "gv.com"
+        "website": "gv.com",
+        "email": "david@gv.com",
+        "partner": "David Krane"
     },
     {
         "id": 5,
@@ -97,7 +105,9 @@ REAL_VCS = [
         "description": "We believe bold entrepreneurs deserve insider access",
         "recentDeals": ["Retool $45M", "Roam $9M", "Hex $52M"],
         "portfolio": ["Uber", "Square", "Notion", "Warby Parker"],
-        "website": "firstround.com"
+        "website": "firstround.com",
+        "email": "josh@firstround.com",
+        "partner": "Josh Kopelman"
     },
     {
         "id": 6,
@@ -113,7 +123,9 @@ REAL_VCS = [
         "description": "We partner with exceptional entrepreneurs",
         "recentDeals": ["Epic Games $1B", "Snap $485M", "Affirm $300M"],
         "portfolio": ["Snapchat", "AppDynamics", "Nutanix"],
-        "website": "lightspeedvp.com"
+        "website": "lightspeedvp.com",
+        "email": "jeremy@lsvp.com",
+        "partner": "Jeremy Liew"
     }
 ]
 
@@ -230,6 +242,71 @@ def generate_demo_company():
     
     return random.choice(companies)
 
+def generate_vc_weekly_queue(vc):
+    """Generate realistic startup queue for VC based on their thesis"""
+    
+    # Create startups aligned to this VC's focus
+    startups = []
+    
+    if "AI/ML" in vc["industries"]:
+        startups.append({
+            "id": 1,
+            "company_name": "NeuralFlow AI",
+            "sector": "AI/ML",
+            "stage": "Series A",
+            "metrics": "$2.1M ARR, 25% MoM growth",
+            "team": "Ex-Google/Meta AI team",
+            "thesis_score": 94,
+            "market_timing": "Hot",
+            "rationale": ["AI/ML thesis perfect match", "Enterprise B2B focus", "Series A stage alignment", "Strong team pedigree"],
+            "portfolio_synergy": ["GitHub integration potential", "Coinbase data needs"],
+            "risk_factors": ["Competition from DataBricks", "Enterprise sales cycle"],
+            "next_steps": "30-min partner call",
+            "deck_url": "https://deck.neuralflow.ai",
+            "founder_linkedin": "https://linkedin.com/in/sarah-chen-ai"
+        })
+    
+    if "SaaS" in vc["industries"] or "Developer Tools" in vc["industries"]:
+        startups.append({
+            "id": 2,
+            "company_name": "DevPipe",
+            "sector": "Developer Tools",
+            "stage": "Seed",
+            "metrics": "$800K ARR, 35% MoM growth",
+            "team": "Ex-Stripe/Vercel engineers",
+            "thesis_score": 87,
+            "market_timing": "Emerging",
+            "rationale": ["Developer tools thesis match", "High growth metrics", "Strong technical team", "Open source traction"],
+            "portfolio_synergy": ["GitHub workflow integration", "Slack developer community"],
+            "risk_factors": ["Early stage", "Competitive landscape"],
+            "next_steps": "Technical due diligence",
+            "deck_url": "https://deck.devpipe.io",
+            "founder_linkedin": "https://linkedin.com/in/alex-dev"
+        })
+    
+    if "Healthcare" in vc["industries"]:
+        startups.append({
+            "id": 3,
+            "company_name": "HealthAI Diagnostics",
+            "sector": "Healthcare",
+            "stage": "Series A",
+            "metrics": "$3.2M ARR, 20% MoM growth",
+            "team": "Johns Hopkins + Google Health",
+            "thesis_score": 91,
+            "market_timing": "Ready",
+            "rationale": ["Healthcare AI focus", "FDA-cleared product", "Hospital partnerships", "Proven clinical outcomes"],
+            "portfolio_synergy": ["23andMe data integration", "Verily partnership potential"],
+            "risk_factors": ["Regulatory complexity", "Long sales cycles"],
+            "next_steps": "Clinical validation review",
+            "deck_url": "https://deck.healthai.com",
+            "founder_linkedin": "https://linkedin.com/in/dr-maria-health"
+        })
+    
+    # Sort by thesis score
+    startups.sort(key=lambda x: x["thesis_score"], reverse=True)
+    
+    return startups[:3]  # Return top 3 matches
+
 def find_vc_matches(analysis):
     """Generate realistic VC matches based on company analysis"""
     company_sector = analysis.get('sector', 'AI/ML')
@@ -299,11 +376,13 @@ def index():
         "version": "2.0.0",
         "endpoints": [
             "/api/demo-scenario", 
+            "/api/demo-vc-scenario",
             "/api/market-intelligence", 
             "/api/vcs",
             "/api/analyze-deck",
             "/api/find-matches",
-            "/api/intro-request"
+            "/api/intro-request",
+            "/api/vc-decision"
         ]
     })
 
@@ -327,6 +406,70 @@ def demo_scenario():
         
     except Exception as e:
         logger.error(f"Demo scenario error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/demo-vc-scenario', methods=['POST'])
+def demo_vc_scenario():
+    """Load complete VC demo scenario"""
+    try:
+        # Use Andreessen Horowitz as demo VC
+        demo_vc = REAL_VCS[0]
+        
+        # Generate their weekly startup queue
+        weekly_queue = generate_vc_weekly_queue(demo_vc)
+        
+        # Add some demo metrics
+        vc_metrics = {
+            "deals_reviewed_this_week": 47,
+            "meetings_scheduled": 8,
+            "intros_pending": 12,
+            "portfolio_companies": 156,
+            "avg_response_time": "2.3 days",
+            "this_quarter_investments": 6
+        }
+        
+        return jsonify({
+            "status": "success",
+            "vc_profile": demo_vc,
+            "weekly_queue": weekly_queue,
+            "metrics": vc_metrics,
+            "demo_mode": True,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"VC demo scenario error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/vc-decision', methods=['POST'])
+def vc_decision():
+    """Handle VC decision on startup"""
+    try:
+        data = request.json
+        startup_id = data.get('startup_id')
+        decision = data.get('decision')  # 'interested', 'pass', 'schedule_meeting'
+        vc_id = data.get('vc_id')
+        notes = data.get('notes', '')
+        
+        # Log the decision
+        logger.info(f"VC {vc_id} decision: {decision} for startup {startup_id}")
+        
+        # In production, this would update the database
+        response_data = {
+            "status": "success",
+            "message": f"Decision '{decision}' recorded successfully",
+            "next_steps": {
+                "interested": "Founder will be notified. Meeting request sent.",
+                "pass": "Feedback shared with founder. Startup removed from active queue.",
+                "schedule_meeting": "Calendar invite sent to both parties."
+            }.get(decision, "Decision recorded"),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        logger.error(f"VC decision error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/market-intelligence', methods=['GET'])
