@@ -1,23 +1,23 @@
-**VentureSync 🚀
+**VentureSync**
 **AI-Powered VC-Founder Matching Platform
-Revolutionizing fundraising through intelligent matchmaking, predictive analytics, and bias-aware AI
+**Revolutionizing fundraising through intelligent matchmaking, predictive analytics, and bias-aware AI
 Show Image
 Show Image
 Show Image
 
-**🎯 Problem Statement
-**Fundraising is broken. Success rates for first-time founders are <5%, typical cycles take 3-6 months, and access is dominated by warm-intro gatekeeping. Mismatches between sector, stage, and geography waste time for both founders and investors.
+**Problem Statement
+****Fundraising is broken. Success rates for first-time founders are <5%, typical cycles take 3-6 months, and access is dominated by warm-intro gatekeeping. Mismatches between sector, stage, and geography waste time for both founders and investors.
 VentureSync solves this with AI.
 ✨ Solution Overview
 A multi-agent AI platform that compresses fundraising cycles from months to days through:
 
-🎯 **Smart Matching:** AI analyzes 500+ real VCs against founder profiles
+**Smart Matching** AI analyzes 500+ real VCs against founder profiles
 📊 Predictive Scoring: Machine learning predicts funding success probability
 🔍 Market Intelligence: Real-time analysis of hiring, funding, and industry trends
 ⚖️ Bias-Aware Engine: Demographic parity monitoring and fairness constraints
 📈 Explainable AI: Transparent rationale for every match recommendation
 
-🏗️** Architecture**
+** Architecture**
 mermaidgraph TB
     A[Founder Upload] --> B[Multi-Agent AI Pipeline]
     B --> C[Thesis Extractor Agent]
@@ -35,9 +35,9 @@ mermaidgraph TB
     I --> J[VC Dashboard]
     I --> K[Founder Dashboard]
 
-🚀 **Key Features**
-For Founders
-
+**Key Features**
+**For Founders
+**
 ⚡ Instant Analysis: Upload deck → Get matches in <30 seconds
 🎯 High-Quality Matches: 3+ VCs with >80% compatibility within 48 hours
 📋 Transparent Rationale: See exactly why each VC is a good fit
@@ -52,8 +52,8 @@ For Founders
 📊 Portfolio Intelligence: Identify synergies with existing investments
 📋 Quick Feedback: One-click labels train the matching algorithm
 
-**🛠️ Tech Stack
-****Frontend**
+**Tech Stack
+******Frontend**
 
 React SPA with Tailwind CSS
 PWA Support for mobile experience
@@ -74,8 +74,8 @@ Predictive Models for success scoring
 💼 Hiring Signals: LinkedIn job postings, GitHub activity
 💰 Funding Data: Live funding announcements and trends
 
-**📊 Performance Metrics
-****Success KPIs
+**Performance Metrics
+******Success KPIs
 **
 ✅ 500+ AI introductions generated (Q1 target)
 ✅ 35% meeting acceptance rate (vs. 15% industry average)
