@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VentureSync - AI-Powered VC Matching Platform</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * { 
+            font-family: 'Inter', sans-serif; 
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #0f1419 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .primary-button {
+            background: linear-gradient(135deg, #4299e1 0%, #9f7aea 100%);
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+        }
+        
+        .primary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(66, 153, 225, 0.4);
+            filter: brightness(1.1);
+        }
+        
+        .metric-card {
+            background: linear-gradient(145deg, #1a1f2e 0%, #252a3a 100%);
+            border: 1px solid #2d3748;
+            transition: all 0.3s ease;
+        }
+        
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        
+        .funding-ticker {
+            animation: ticker 45s linear infinite;
+        }
+        
+        .demo-container {
+            position: relative;
+            min-height: 450px;
+            max-height: 450px;
+            overflow: hidden;
+        }
+        
+        .demo-step {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s ease-in-out;
+            padding: 8px;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .demo-step.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .vc-row {
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .vc-row:hover {
+            background: rgba(66, 153, 225, 0.05);
+            border-left-color: #4299e1;
+        }
+        
+        .form-input {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            color: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-size: 0.875rem;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        const PLATFORM_METRICS = {
+            totalMatches: 8420,
+            avgResponseTime: 18,
+            successRate: 73,
+            avgFundingTime: 89,
+            totalFundingFacilitated: 47.2
+        };
+        
+        const fundingNews = [
+            "🚀 TechCo raises $50M Series B led by Sequoia Capital",
+            "💡 AI Startup secures $15M from Andreessen Horowitz",
+            "🏥 HealthTech raises $30M Series A from NEA",
+            "🔒 Security firm closes $25M led by Accel Partners",
+            "🌍 Climate startup gets $40M from Kleiner Perkins"
+        ];
+        
+        const mockVCs = [
+            { id: 1, name: "Sequoia Capital", type: "Tier 1", stage: "Series A-C", checkSize: "$5M-50M", industries: "SaaS, AI", geography: "SF Bay Area", responseRate: "82%", avgResponse: "2.1 days" },
+            { id: 2, name: "Andreessen Horowitz", type: "Tier 1", stage: "Seed-Series B", checkSize: "$500K-30M", industries: "Crypto, Consumer", geography: "SF Bay Area", responseRate: "78%", avgResponse: "2.3 days" },
+            { id: 3, name: "Accel Partners", type: "Tier 1", stage: "Series A-B", checkSize: "$3M-25M", industries: "Fintech, Health", geography: "London, NYC", responseRate: "75%", avgResponse: "3.2 days" },
+            { id: 4, name: "Lightspeed Venture", type: "Growth", stage: "Seed-Series C", checkSize: "$1M-40M", industries: "Enterprise", geography: "Menlo Park", responseRate: "80%", avgResponse: "2.8 days" },
+            { id: 5, name: "Bessemer Venture", type: "Growth", stage: "Series A-D", checkSize: "$5M-100M", industries: "Cloud, Security", geography: "Boston, NYC", responseRate: "77%", avgResponse: "3.5 days" },
+            { id: 6, name: "Greylock Partners", type: "Tier 1", stage: "Seed-Series B", checkSize: "$2M-30M", industries: "AI, Enterprise", geography: "Menlo Park", responseRate: "81%", avgResponse: "2.2 days" },
+            { id: 7, name: "Founders Fund", type: "Tier 1", stage: "Seed-Series C", checkSize: "$500K-50M", industries: "DeepTech", geography: "SF, Seattle", responseRate: "73%", avgResponse: "4.1 days" },
+            { id: 8, name: "Index Ventures", type: "Growth", stage: "Series A-C", checkSize: "$3M-40M", industries: "SaaS", geography: "London, SF", responseRate: "79%", avgResponse: "2.9 days" },
+            { id: 9, name: "General Catalyst", type: "Growth", stage: "Seed-Series B", checkSize: "$1M-25M", industries: "Healthcare", geography: "Boston, NYC", responseRate: "76%", avgResponse: "3.1 days" },
+            { id: 10, name: "NEA", type: "Tier 1", stage: "Series A-C", checkSize: "$5M-40M", industries: "Enterprise", geography: "Menlo Park", responseRate: "74%", avgResponse: "3.8 days" },
+            { id: 11, name: "Kleiner Perkins", type: "Tier 1", stage: "Series A-B", checkSize: "$3M-30M", industries: "Climate, AI", geography: "Menlo Park", responseRate: "79%", avgResponse: "2.7 days" },
+            { id: 12, name: "Benchmark", type: "Tier 1", stage: "Series A-B", checkSize: "$5M-25M", industries: "Consumer", geography: "Menlo Park", responseRate: "83%", avgResponse: "1.9 days" },
+            { id: 13, name: "First Round", type: "Tier 1", stage: "Seed-Series A", checkSize: "$500K-15M", industries: "SaaS", geography: "SF, NYC", responseRate: "77%", avgResponse: "2.6 days" },
+            { id: 14, name: "Union Square Ventures", type: "Growth", stage: "Series A-B", checkSize: "$2M-20M", industries: "Consumer", geography: "NYC", responseRate: "72%", avgResponse: "3.9 days" },
+            { id: 15, name: "GV (Google Ventures)", type: "Corporate", stage: "Seed-Series C", checkSize: "$1M-50M", industries: "AI, Healthcare", geography: "Mountain View", responseRate: "75%", avgResponse: "3.4 days" },
+            { id: 16, name: "Insight Partners", type: "Growth", stage: "Series B-D", checkSize: "$10M-200M", industries: "SaaS", geography: "NYC", responseRate: "78%", avgResponse: "2.8 days" }
+        ];
+        
+        const ProgressRing = ({ percentage, size = 120, strokeWidth = 8, color = "#22c55e" }) => {
+            const radius = (size - strokeWidth) / 2;
+            const circumference = radius * 2 * Math.PI;
+            const strokeDasharray = circumference + " " + circumference;
+            const strokeDashoffset = circumference - (percentage / 100) * circumference;
+            
+            return (
+                <div className="relative inline-flex items-center justify-center">
+                    <svg width={size} height={size} className="progress-ring">
+                        <circle
+                            cx={size / 2}
+                            cy={size / 2}
+                            r={radius}
+                            stroke="rgba(255, 255, 255, 0.1)"
+                            strokeWidth={strokeWidth}
+                            fill="transparent"
+                        />
+                        <circle
+                            cx={size / 2}
+                            cy={size / 2}
+                            r={radius}
+                            stroke={color}
+                            strokeWidth={strokeWidth}
+                            fill="transparent"
+                            strokeDasharray={strokeDasharray}
+                            strokeDashoffset={strokeDashoffset}
+                            className="progress-ring-circle"
+                            strokeLinecap="round"
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-2xl font-bold">{percentage}%</span>
+                    </div>
+                </div>
+            );
+        };
+        
+        const FundingTicker = () => {
+            return (
+                <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 py-2 overflow-hidden">
+                    <div className="funding-ticker flex space-x-8 text-sm text-gray-300 whitespace-nowrap">
+                        {fundingNews.map((news, i) => (
+                            <span key={i} className="inline-block px-4">{news}</span>
+                        ))}
+                        {fundingNews.map((news, i) => (
+                            <span key={"dup-" + i} className="inline-block px-4">{news}</span>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+        
+        const MetricsSection = () => {
+            return (
+                <div className="bg-gradient-to-r from-gray-900/50 to-gray-800/50 py-3">
+                    <div className="max-w-7xl mx-auto px-4">
+                        <div className="grid grid-cols-5 gap-3">
+                            <div className="metric-card rounded-lg p-2 text-center">
+                                <div className="text-base font-bold text-blue-400">{PLATFORM_METRICS.totalMatches.toLocaleString()}</div>
+                                <div className="text-xs text-gray-400">Total Matches</div>
+                                <div className="text-xs text-green-400">↗ 847 this month</div>
+                            </div>
+                            <div className="metric-card rounded-lg p-2 text-center">
+                                <div className="text-base font-bold text-green-400">{PLATFORM_METRICS.avgResponseTime}h</div>
+                                <div className="text-xs text-gray-400">Avg Response</div>
+                                <div className="text-xs text-blue-400">vs. 2wk cold</div>
+                            </div>
+                            <div className="metric-card rounded-lg p-2 text-center">
+                                <div className="text-base font-bold text-purple-400">{PLATFORM_METRICS.successRate}%</div>
+                                <div className="text-xs text-gray-400">Success Rate</div>
+                                <div className="text-xs text-green-400">vs. 12% cold</div>
+                            </div>
+                            <div className="metric-card rounded-lg p-2 text-center">
+                                <div className="text-base font-bold text-yellow-400">{PLATFORM_METRICS.avgFundingTime}d</div>
+                                <div className="text-xs text-gray-400">Time to Funding</div>
+                                <div className="text-xs text-green-400">vs. 180d trad</div>
+                            </div>
+                            <div className="metric-card rounded-lg p-2 text-center">
+                                <div className="text-base font-bold text-cyan-400">${PLATFORM_METRICS.totalFundingFacilitated}M</div>
+                                <div className="text-xs text-gray-400">Facilitated</div>
+                                <div className="text-xs text-green-400">Platform total</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const PlatformDemo = () => {
+            const [currentStep, setCurrentStep] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const audioRef = useRef(null);
+            
+            const demoSteps = [
+                {
+                    title: "1. VentureSync - AI-Powered Platform",
+                    duration: 4000,
+                    content: (
+                        <div className="text-center space-y-4">
+                            <div className="w-32 h-32 mx-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl">
+                                <span className="text-4xl">⚡</span>
+                            </div>
+                            <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                VentureSync
+                            </div>
+                            <p className="text-xl text-gray-300">AI-Powered VC-Founder Matching</p>
+                            <div className="grid grid-cols-2 gap-4 mt-6">
+                                <div className="bg-gray-800 rounded-lg p-3">
+                                    <div className="text-2xl font-bold text-blue-400">1,247</div>
+                                    <div className="text-sm text-gray-400">Matches This Week</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-3">
+                                    <div className="text-2xl font-bold text-green-400">73%</div>
+                                    <div className="text-sm text-gray-400">Success Rate</div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "2. Complete Founder Profile - TechFlow AI Details",
+                    duration: 4000,
+                    content: (
+                        <div className="space-y-4">
+                            <div className="bg-gray-800 rounded-lg p-4 border-l-4 border-blue-500">
+                                <h4 className="font-bold text-xl mb-4 text-blue-400">TechFlow AI - Complete Profile</h4>
+                                <div className="grid grid-cols-2 gap-4 text-base">
+                                    <div>
+                                        <div className="mb-2"><span className="text-gray-400">Company:</span> <span className="font-semibold">TechFlow AI</span></div>
+                                        <div className="mb-2"><span className="text-gray-400">Stage:</span> <span className="font-semibold">Series A</span></div>
+                                        <div className="mb-2"><span className="text-gray-400">Sector:</span> <span className="font-semibold">AI/ML Infrastructure</span></div>
+                                        <div className="mb-2"><span className="text-gray-400">Location:</span> <span className="font-semibold">San Francisco</span></div>
+                                    </div>
+                                    <div>
+                                        <div className="mb-2"><span className="text-gray-400">Target Raise:</span> <span className="font-semibold text-green-400">$15M</span></div>
+                                        <div className="mb-2"><span className="text-gray-400">ARR:</span> <span className="font-semibold text-green-400">$2.4M</span></div>
+                                        <div className="mb-2"><span className="text-gray-400">Growth:</span> <span className="font-semibold text-green-400">15% MoM</span></div>
+                                        <div className="mb-2"><span className="text-gray-400">Team:</span> <span className="font-semibold">23 employees</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "3. Visual 3-Step Onboarding Flow with Checkmarks",
+                    duration: 4000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="text-xl font-bold text-center">Simple 3-Step Process</h4>
+                            <div className="flex justify-between items-center">
+                                <div className="text-center">
+                                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-3 mx-auto">
+                                        <span className="text-2xl font-bold text-white">✓</span>
+                                    </div>
+                                    <div className="font-semibold">Upload Profile</div>
+                                    <div className="text-sm text-gray-400">Complete details</div>
+                                </div>
+                                <div className="flex-1 h-1 bg-green-500 mx-4"></div>
+                                <div className="text-center">
+                                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-3 mx-auto">
+                                        <span className="text-2xl font-bold text-white">✓</span>
+                                    </div>
+                                    <div className="font-semibold">AI Analysis</div>
+                                    <div className="text-sm text-gray-400">Claude processes</div>
+                                </div>
+                                <div className="flex-1 h-1 bg-green-500 mx-4"></div>
+                                <div className="text-center">
+                                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-3 mx-auto">
+                                        <span className="text-2xl font-bold text-white">✓</span>
+                                    </div>
+                                    <div className="font-semibold">Get Matches</div>
+                                    <div className="text-sm text-gray-400">VC recommendations</div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "4. Claude AI Processing with Real-time Indicators and Completion",
+                    duration: 6000,
+                    content: (
+                        <div className="text-center space-y-4">
+                            <h4 className="text-xl font-bold">Claude AI Processing Your Profile</h4>
+                            <div className="w-32 h-32 mx-auto mb-4">
+                                <ProgressRing percentage={100} size={128} color="#22c55e" />
+                            </div>
+                            <div className="text-xl font-bold text-green-400 mb-4">Analysis Complete!</div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div className="flex items-center space-x-2">
+                                    <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                    <span>Market positioning analyzed</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                    <span>Investment thesis matching</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                    <span>Portfolio synergies identified</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                    <span>Success probability calculated</span>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "5. Top 3 VC Matches with Exact Percentages (Sequoia 94%, Accel 88%, a16z 85%)",
+                    duration: 6000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="text-xl font-bold text-center">Your Top VC Matches</h4>
+                            <div className="space-y-3">
+                                <div className="bg-gradient-to-r from-red-900/30 to-red-800/30 rounded-lg p-4 border-2 border-red-500/50">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <div className="text-xl font-bold">Sequoia Capital</div>
+                                            <div className="text-sm text-gray-400">Enterprise AI Focus</div>
+                                        </div>
+                                        <div className="text-4xl font-bold text-green-400">94%</div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-r from-blue-900/30 to-blue-800/30 rounded-lg p-4 border border-blue-500/30">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <div className="text-xl font-bold">Accel Partners</div>
+                                            <div className="text-sm text-gray-400">Series A Specialist</div>
+                                        </div>
+                                        <div className="text-4xl font-bold text-blue-400">88%</div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-r from-purple-900/30 to-purple-800/30 rounded-lg p-4 border border-purple-500/30">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <div className="text-xl font-bold">Andreessen Horowitz</div>
+                                            <div className="text-sm text-gray-400">AI Infrastructure</div>
+                                        </div>
+                                        <div className="text-4xl font-bold text-purple-400">85%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "6. Detailed WHY Sequoia matches with 4 specific reasons",
+                    duration: 6000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="text-xl font-bold text-center">Why Sequoia Capital Is Perfect</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-3">
+                                    <div className="flex items-start space-x-3">
+                                        <div className="w-8 h-8 bg-green-400 rounded-full flex items-center justify-center text-black font-bold">1</div>
+                                        <div>
+                                            <div className="font-semibold">Deep AI/ML Focus</div>
+                                            <div className="text-sm text-gray-400">Strong thesis in AI infrastructure</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start space-x-3">
+                                        <div className="w-8 h-8 bg-green-400 rounded-full flex items-center justify-center text-black font-bold">2</div>
+                                        <div>
+                                            <div className="font-semibold">Stage & Check Size Match</div>
+                                            <div className="text-sm text-gray-400">Series A, $10-20M sweet spot</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="flex items-start space-x-3">
+                                        <div className="w-8 h-8 bg-green-400 rounded-full flex items-center justify-center text-black font-bold">3</div>
+                                        <div>
+                                            <div className="font-semibold">Portfolio Synergies</div>
+                                            <div className="text-sm text-gray-400">Snowflake, Zoom integrations</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start space-x-3">
+                                        <div className="w-8 h-8 bg-green-400 rounded-full flex items-center justify-center text-black font-bold">4</div>
+                                        <div>
+                                            <div className="font-semibold">Geographic Proximity</div>
+                                            <div className="text-sm text-gray-400">SF Bay Area preference</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "7. 92% compatibility ring with portfolio synergies (Snowflake, Zoom, Stripe, ServiceNow)",
+                    duration: 6000,
+                    content: (
+                        <div className="text-center space-y-4">
+                            <h4 className="text-xl font-bold">Portfolio Synergies Identified</h4>
+                            <div className="mb-4">
+                                <ProgressRing percentage={92} size={160} strokeWidth={12} color="#22c55e" />
+                            </div>
+                            <div className="text-2xl font-bold text-green-400 mb-4">92% Compatibility</div>
+                            <div className="grid grid-cols-4 gap-3">
+                                <div className="bg-gray-800 rounded-lg p-3 text-center">
+                                    <div className="w-10 h-10 bg-blue-500 rounded-lg mx-auto mb-2"></div>
+                                    <div className="font-semibold">Snowflake</div>
+                                    <div className="text-xs text-gray-400">Data Integration</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-3 text-center">
+                                    <div className="w-10 h-10 bg-blue-600 rounded-lg mx-auto mb-2"></div>
+                                    <div className="font-semibold">Zoom</div>
+                                    <div className="text-xs text-gray-400">API Partnership</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-3 text-center">
+                                    <div className="w-10 h-10 bg-green-500 rounded-lg mx-auto mb-2"></div>
+                                    <div className="font-semibold">Stripe</div>
+                                    <div className="text-xs text-gray-400">Payment Rails</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-3 text-center">
+                                    <div className="w-10 h-10 bg-red-500 rounded-lg mx-auto mb-2"></div>
+                                    <div className="font-semibold">ServiceNow</div>
+                                    <div className="text-xs text-gray-400">Enterprise Sales</div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "8. One-click introduction with feature checklist",
+                    duration: 6000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="text-xl font-bold text-center">One-Click Introduction Request</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <div className="text-lg font-semibold mb-3">Features Included:</div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-2">
+                                            <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                            <span>Personalized message template</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                            <span>Pitch deck attachment</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                            <span>Compatibility highlights</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                            <span>Follow-up automation</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 transform hover:scale-105 transition-all duration-300 cursor-pointer">
+                                        <div className="text-3xl mb-3">🚀</div>
+                                        <div className="text-xl font-bold mb-2">Send Introduction</div>
+                                        <div className="text-blue-100">Request meeting with Sequoia</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "9. Calendar integration with meeting scheduled details",
+                    duration: 6000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="text-xl font-bold text-center">Meeting Scheduled Successfully!</h4>
+                            <div className="text-center mb-4">
+                                <div className="w-20 h-20 bg-green-400 rounded-full mx-auto mb-3 flex items-center justify-center">
+                                    <span className="text-3xl text-black">✓</span>
+                                </div>
+                                <div className="text-xl font-semibold text-green-400">Introduction Accepted!</div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <div className="text-lg font-semibold mb-3">Meeting Details:</div>
+                                    <div className="space-y-2">
+                                        <div><span className="text-gray-400">With:</span> <span className="font-semibold">Sarah Chen, Partner</span></div>
+                                        <div><span className="text-gray-400">Date:</span> <span className="font-semibold">Tuesday, March 15th</span></div>
+                                        <div><span className="text-gray-400">Time:</span> <span className="font-semibold">2:00 PM PST</span></div>
+                                        <div><span className="text-gray-400">Duration:</span> <span className="font-semibold">45 minutes</span></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-lg font-semibold mb-3">Integration:</div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-2">
+                                            <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                            <span>Google Calendar updated</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                            <span>Zoom link generated</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-black text-xs">✓</span>
+                                            <span>Reminders set</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "10. Progress tracking with completion status",
+                    duration: 6000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="text-xl font-bold text-center">Track Your Progress</h4>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between bg-gray-800 rounded-lg p-3">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-6 h-6 bg-green-400 rounded-full flex items-center justify-center text-black text-sm font-bold">✓</div>
+                                        <span>Profile Created</span>
+                                    </div>
+                                    <span className="text-sm text-green-400">Completed</span>
+                                </div>
+                                <div className="flex items-center justify-between bg-gray-800 rounded-lg p-3">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-6 h-6 bg-green-400 rounded-full flex items-center justify-center text-black text-sm font-bold">✓</div>
+                                        <span>AI Analysis Complete</span>
+                                    </div>
+                                    <span className="text-sm text-green-400">Completed</span>
+                                </div>
+                                <div className="flex items-center justify-between bg-gray-800 rounded-lg p-3">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-6 h-6 bg-green-400 rounded-full flex items-center justify-center text-black text-sm font-bold">✓</div>
+                                        <span>Introduction Sent</span>
+                                    </div>
+                                    <span className="text-sm text-green-400">Completed</span>
+                                </div>
+                                <div className="flex items-center justify-between bg-blue-900/30 rounded-lg p-3 border border-blue-500">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center text-white text-sm font-bold pulse">→</div>
+                                        <span>Meeting Scheduled</span>
+                                    </div>
+                                    <span className="text-sm text-blue-400">Active</span>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "11. Final success metrics (3x faster, 73% success, 18h response)",
+                    duration: 6000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="text-xl font-bold text-center">VentureSync Results</h4>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                                    <div className="text-4xl font-bold text-green-400 mb-2">3x</div>
+                                    <div className="text-lg font-semibold">Faster</div>
+                                    <div className="text-sm text-gray-400">Than traditional outreach</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                                    <div className="text-4xl font-bold text-blue-400 mb-2">73%</div>
+                                    <div className="text-lg font-semibold">Success Rate</div>
+                                    <div className="text-sm text-gray-400">Meeting acceptance rate</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                                    <div className="text-4xl font-bold text-purple-400 mb-2">18h</div>
+                                    <div className="text-lg font-semibold">Response Time</div>
+                                    <div className="text-sm text-gray-400">Average VC response</div>
+                                </div>
+                            </div>
+                            <div className="text-center mt-4">
+                                <p className="text-lg text-gray-300">
+                                    Transform your fundraising with AI-powered matching
+                                </p>
+                            </div>
+                        </div>
+                    )
+                }
+            ];
+            
+            useEffect(() => {
+                if (isPlaying && currentStep < demoSteps.length - 1) {
+                    const timer = setTimeout(() => {
+                        setCurrentStep(currentStep + 1);
+                    }, demoSteps[currentStep].duration + 3000); // Added 3 second delay
+                    return () => clearTimeout(timer);
+                } else if (isPlaying && currentStep === demoSteps.length - 1) {
+                    // Stop at the end, don't loop back to 0
+                    const timer = setTimeout(() => {
+                        setIsPlaying(false); // Stop playing when demo ends
+                    }, demoSteps[currentStep].duration);
+                    return () => clearTimeout(timer);
+                }
+            }, [isPlaying, currentStep]);
+            
+            const playAudio = () => {
+                console.log('Play button clicked');
+                console.log('Audio src:', audioRef.current?.src);
+                console.log('Audio readyState:', audioRef.current?.readyState);
+                
+                // Reset to beginning when starting demo
+                setCurrentStep(0);
+                setIsPlaying(true);
+                
+                if (audioRef.current) {
+                    console.log('Audio element found, attempting to play');
+                    audioRef.current.currentTime = 0; // Reset audio to beginning
+                    audioRef.current.play()
+                        .then(() => {
+                            console.log('Audio started playing successfully');
+                            audioRef.current.onended = () => {
+                                console.log('Audio finished playing');
+                                setIsPlaying(false);
+                            };
+                        })
+                        .catch(e => {
+                            console.error('Audio play failed:', e);
+                            console.error('Audio error details:', audioRef.current?.error);
+                            setIsPlaying(false);
+                        });
+                } else {
+                    console.error('Audio element not found');
+                    setIsPlaying(false);
+                }
+            };
+            
+            const stopAudio = () => {
+                console.log('Stop button clicked');
+                setIsPlaying(false);
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.currentTime = 0;
+                }
+            };
+            
+            return (
+                <div className="glassmorphism rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold">Platform Demo</h3>
+                        <div className="flex items-center space-x-2">
+                            {!isPlaying ? (
+                                <button onClick={playAudio} className="primary-button text-xs flex items-center">
+                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                    </svg>
+                                    Play Audio
+                                </button>
+                            ) : (
+                                <button onClick={stopAudio} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center">
+                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                                    </svg>
+                                    Stop
+                                </button>
+                            )}
+                            <div className="flex space-x-1">
+                                {demoSteps.map((step, index) => (
+                                    <div key={index} className={`w-1.5 h-1.5 rounded-full transition-colors ${index === currentStep ? 'bg-blue-500' : 'bg-gray-600'}`}></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <audio ref={audioRef} src="/voiceover.mp3" preload="auto" />
+                    <div className="demo-container">
+                        {demoSteps.map((step, index) => (
+                            <div key={index} className={`demo-step ${currentStep === index ? 'active' : ''}`}>
+                                <h4 className="text-base font-semibold mb-3">{step.title}</h4>
+                                {step.content}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+        
+        const VCExperienceDemo = () => {
+            const [currentStep, setCurrentStep] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const audioRef = useRef(null);
+            
+            const vcSteps = [
+                {
+                    title: "1. Marc's Dashboard with 847 pre-screened startups",
+                    duration: 8000,
+                    content: (
+                        <div className="space-y-4">
+                            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-lg p-4 border border-purple-500/30">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <h4 className="font-bold text-xl">Marc's Weekly Dashboard</h4>
+                                        <p className="text-sm text-gray-400">Sequoia Capital Partner</p>
+                                    </div>
+                                    <div className="text-sm text-gray-400">Monday 9:00 AM</div>
+                                </div>
+                                <div className="text-center bg-gray-800/50 rounded-lg p-6">
+                                    <div className="text-6xl font-bold text-blue-400 mb-2 pulse">847</div>
+                                    <div className="text-xl text-gray-300 font-semibold">Pre-screened Startups This Week</div>
+                                    <div className="text-sm text-green-400 mt-2">AI filtered from 12,000+ applications</div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "2. Weekly performance metrics (47 reviewed, 8 meetings, 2.3 days, 67%)",
+                    duration: 8000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-lg mb-4 text-purple-400">This Week's Performance</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center bg-blue-900/20 rounded-lg p-4">
+                                    <div className="text-4xl font-bold text-blue-400">47</div>
+                                    <div className="text-lg text-gray-300 font-semibold">Reviewed</div>
+                                    <div className="text-sm text-gray-400">Companies this week</div>
+                                </div>
+                                <div className="text-center bg-green-900/20 rounded-lg p-4">
+                                    <div className="text-4xl font-bold text-green-400">8</div>
+                                    <div className="text-lg text-gray-300 font-semibold">Meetings</div>
+                                    <div className="text-sm text-gray-400">Already scheduled</div>
+                                </div>
+                                <div className="text-center bg-purple-900/20 rounded-lg p-4">
+                                    <div className="text-4xl font-bold text-purple-400">2.3</div>
+                                    <div className="text-lg text-gray-300 font-semibold">Days</div>
+                                    <div className="text-sm text-gray-400">Average response time</div>
+                                </div>
+                                <div className="text-center bg-yellow-900/20 rounded-lg p-4">
+                                    <div className="text-4xl font-bold text-yellow-400">67%</div>
+                                    <div className="text-lg text-gray-300 font-semibold">Conversion</div>
+                                    <div className="text-sm text-gray-400">Intro to meeting rate</div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "3. Top 6 AI-ranked startups with exact names and percentages",
+                    duration: 10000,
+                    content: (
+                        <div className="space-y-3">
+                            <h4 className="font-bold text-lg text-center">Top 6 AI-Ranked Startups</h4>
+                            <div className="space-y-2">
+                                <div className="bg-gray-800 rounded p-3 border-l-4 border-green-500">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="font-bold text-lg">NeuralFlow AI</span>
+                                            <span className="text-sm text-gray-400 ml-2">• ML Operations • $12M Series A</span>
+                                        </div>
+                                        <span className="text-3xl font-bold text-green-400">94%</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-800 rounded p-3 border-l-4 border-blue-500">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="font-bold text-lg">CryptoVault</span>
+                                            <span className="text-sm text-gray-400 ml-2">• Digital Security • $15M Series A</span>
+                                        </div>
+                                        <span className="text-3xl font-bold text-blue-400">89%</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-800 rounded p-3 border-l-4 border-purple-500">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="font-bold">DevPipe</span>
+                                            <span className="text-sm text-gray-400 ml-2">• Developer Tools • $10M Series A</span>
+                                        </div>
+                                        <span className="text-2xl font-bold text-purple-400">82%</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-800 rounded p-3 border-l-4 border-yellow-500">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="font-bold">CloudSecure</span>
+                                            <span className="text-sm text-gray-400 ml-2">• Cloud Security • $18M Series A</span>
+                                        </div>
+                                        <span className="text-2xl font-bold text-yellow-400">78%</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-800 rounded p-3 border-l-4 border-orange-500">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="font-bold">QuantumCompute</span>
+                                            <span className="text-sm text-gray-400 ml-2">• Quantum Computing • $5M Seed</span>
+                                        </div>
+                                        <span className="text-xl font-bold text-orange-400">71%</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-800 rounded p-3 opacity-70">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="font-bold">Web3Social</span>
+                                            <span className="text-sm text-gray-400 ml-2">• Social Platform • $20M Series A</span>
+                                        </div>
+                                        <span className="text-xl font-bold text-red-400">65%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "4. Interested decisions for NeuralFlow AI and CryptoVault",
+                    duration: 8000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-lg text-green-400">Marc's Interested Decisions</h4>
+                            <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-xl">NeuralFlow AI</span>
+                                    <span className="bg-green-600 px-4 py-2 rounded text-lg font-bold pulse">INTERESTED</span>
+                                </div>
+                                <p className="text-sm text-gray-300">Perfect AI/ML thesis match + enterprise traction</p>
+                            </div>
+                            <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-xl">CryptoVault</span>
+                                    <span className="bg-green-600 px-4 py-2 rounded text-lg font-bold pulse">INTERESTED</span>
+                                </div>
+                                <p className="text-sm text-gray-300">Strong crypto infrastructure play, regulatory ready</p>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "5. Scheduled calls (DevPipe Tuesday 2PM, CloudSecure Wednesday 11AM)",
+                    duration: 8000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-lg text-blue-400">Scheduled Meetings</h4>
+                            <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-xl">DevPipe</span>
+                                    <span className="bg-blue-600 px-4 py-2 rounded font-bold pulse">CALL SCHEDULED</span>
+                                </div>
+                                <div className="text-lg text-gray-300">
+                                    <strong>Tuesday 2:00 PM PST</strong> - Developer tools focus session
+                                </div>
+                            </div>
+                            <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-xl">CloudSecure</span>
+                                    <span className="bg-blue-600 px-4 py-2 rounded font-bold pulse">CALL SCHEDULED</span>
+                                </div>
+                                <div className="text-lg text-gray-300">
+                                    <strong>Wednesday 11:00 AM PST</strong> - Security thesis deep dive
+                                </div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "6. Pass decisions with reasons (QuantumCompute too early, Web3Social token risk)",
+                    duration: 10000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-lg text-red-400">Pass Decisions with Reasons</h4>
+                            <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-xl">QuantumCompute</span>
+                                    <span className="bg-red-600 px-4 py-2 rounded font-bold">PASSED</span>
+                                </div>
+                                <p className="text-lg text-gray-300">
+                                    <strong>Reason:</strong> Too early stage - needs more market traction
+                                </p>
+                            </div>
+                            <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-xl">Web3Social</span>
+                                    <span className="bg-red-600 px-4 py-2 rounded font-bold">PASSED</span>
+                                </div>
+                                <p className="text-lg text-gray-300">
+                                    <strong>Reason:</strong> Token economics risk and regulatory uncertainty
+                                </p>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "7. 67% conversion rate vs 11% cold outreach",
+                    duration: 8000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-xl text-center">Conversion Rate Comparison</h4>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="text-center">
+                                    <div className="text-lg font-semibold mb-3 text-green-400">VentureSync Platform</div>
+                                    <div className="mb-4">
+                                        <ProgressRing percentage={67} size={120} strokeWidth={10} color="#22c55e" />
+                                    </div>
+                                    <div className="text-sm font-semibold">AI-Matched Introductions</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-lg font-semibold mb-3 text-red-400">Cold Outreach</div>
+                                    <div className="mb-4">
+                                        <ProgressRing percentage={11} size={120} strokeWidth={10} color="#ef4444" />
+                                    </div>
+                                    <div className="text-sm font-semibold">Traditional Methods</div>
+                                </div>
+                            </div>
+                            <div className="text-center bg-green-900/20 rounded-lg p-4">
+                                <div className="text-3xl font-bold text-green-400">6x Better Performance</div>
+                                <div className="text-gray-300">VentureSync vs traditional outreach</div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    title: "8. Time savings summary (15h saved, 3.2x higher quality)",
+                    duration: 8000,
+                    content: (
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-xl text-center">Weekly Time Savings</h4>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                                    <div className="text-4xl font-bold text-green-400 mb-2">15h</div>
+                                    <div className="text-lg font-semibold">Time Saved</div>
+                                    <div className="text-sm text-gray-400">On deal sourcing</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                                    <div className="text-4xl font-bold text-blue-400 mb-2">3.2x</div>
+                                    <div className="text-lg font-semibold">Higher Quality</div>
+                                    <div className="text-sm text-gray-400">Better matches</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                                    <div className="text-4xl font-bold text-purple-400 mb-2">847</div>
+                                    <div className="text-lg font-semibold">Auto-Screened</div>
+                                    <div className="text-sm text-gray-400">Startups analyzed</div>
+                                </div>
+                            </div>
+                            <div className="text-center mt-4 bg-gray-800/50 rounded-lg p-4">
+                                <p className="text-lg text-gray-300">
+                                    Marc processed 47 companies, scheduled 8 meetings, saved 15 hours
+                                </p>
+                            </div>
+                        </div>
+                    )
+                }
+            ];
+            
+            useEffect(() => {
+                if (isPlaying && currentStep < vcSteps.length - 1) {
+                    const timer = setTimeout(() => {
+                        setCurrentStep(currentStep + 1);
+                    }, vcSteps[currentStep].duration + 3000); // Added 3 second delay
+                    return () => clearTimeout(timer);
+                } else if (isPlaying && currentStep === vcSteps.length - 1) {
+                    // Stop at the end, don't loop back to 0
+                    const timer = setTimeout(() => {
+                        setIsPlaying(false); // Stop playing when demo ends
+                    }, vcSteps[currentStep].duration);
+                    return () => clearTimeout(timer);
+                }
+            }, [isPlaying, currentStep]);
+            
+            const playAudio = () => {
+                console.log('VC Play button clicked');
+                console.log('VC Audio src:', audioRef.current?.src);
+                console.log('VC Audio readyState:', audioRef.current?.readyState);
+                
+                // Reset to beginning when starting demo
+                setCurrentStep(0);
+                setIsPlaying(true);
+                
+                if (audioRef.current) {
+                    console.log('VC Audio element found, attempting to play');
+                    audioRef.current.currentTime = 0; // Reset audio to beginning
+                    audioRef.current.play()
+                        .then(() => {
+                            console.log('VC Audio started playing successfully');
+                            audioRef.current.onended = () => {
+                                console.log('VC Audio finished playing');
+                                setIsPlaying(false);
+                            };
+                        })
+                        .catch(e => {
+                            console.error('VC Audio play failed:', e);
+                            console.error('VC Audio error details:', audioRef.current?.error);
+                            setIsPlaying(false);
+                        });
+                } else {
+                    console.error('VC Audio element not found');
+                    setIsPlaying(false);
+                }
+            };
+            
+            const stopAudio = () => {
+                console.log('VC Stop button clicked');
+                setIsPlaying(false);
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.currentTime = 0;
+                }
+            };
+            
+            return (
+                <div className="glassmorphism rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold">VC Partner Experience</h3>
+                        <div className="flex items-center space-x-2">
+                            {!isPlaying ? (
+                                <button onClick={playAudio} className="primary-button text-xs flex items-center">
+                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                    </svg>
+                                    Play Audio
+                                </button>
+                            ) : (
+                                <button onClick={stopAudio} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center">
+                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                                    </svg>
+                                    Stop
+                                </button>
+                            )}
+                            <div className="flex space-x-1">
+                                {vcSteps.map((step, index) => (
+                                    <div key={index} className={`w-1.5 h-1.5 rounded-full transition-colors ${index === currentStep ? 'bg-purple-500' : 'bg-gray-600'}`}></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <audio ref={audioRef} src="/vc-demo-complete.mp3" preload="auto" />
+                    <div className="demo-container">
+                        {vcSteps.map((step, index) => (
+                            <div key={index} className={`demo-step ${currentStep === index ? 'active' : ''}`}>
+                                <h4 className="text-base font-semibold mb-3">{step.title}</h4>
+                                {step.content}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+        
+        const VCDirectory = () => {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [isPlaying, setIsPlaying] = useState(false);
+            const audioRef = useRef(null);
+            
+            const filteredVCs = mockVCs.filter(vc => 
+                vc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                vc.industries.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            
+            const playAudio = () => {
+                setIsPlaying(true);
+                if (audioRef.current) {
+                    audioRef.current.play()
+                        .then(() => {
+                            audioRef.current.onended = () => setIsPlaying(false);
+                        })
+                        .catch(e => console.log('Audio play failed:', e));
+                }
+            };
+            
+            const stopAudio = () => {
+                setIsPlaying(false);
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.currentTime = 0;
+                }
+            };
+            
+            return (
+                <div className="glassmorphism rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-bold">Investor Directory</h3>
+                        {!isPlaying ? (
+                            <button onClick={playAudio} className="primary-button text-xs flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                </svg>
+                                Play Audio
+                            </button>
+                        ) : (
+                            <button onClick={stopAudio} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                                </svg>
+                                Stop
+                            </button>
+                        )}
+                    </div>
+                    <audio ref={audioRef} src="/directory-demo.mp3" preload="auto" />
+                    
+                    <input
+                        type="text"
+                        placeholder="Search by sector, stage, or check size..."
+                        className="form-input mb-3"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {filteredVCs.map(vc => (
+                            <div key={vc.id} className="vc-row bg-gray-800/50 rounded p-3">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <span className="font-semibold">{vc.name}</span>
+                                            <span className="text-xs bg-gray-700 px-2 py-0.5 rounded">{vc.type}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 text-xs text-gray-400">
+                                            <div><span className="text-gray-500">Stage:</span> {vc.stage}</div>
+                                            <div><span className="text-gray-500">Check:</span> {vc.checkSize}</div>
+                                            <div><span className="text-gray-500">Industries:</span> {vc.industries}</div>
+                                            <div><span className="text-gray-500">Geography:</span> {vc.geography}</div>
+                                            <div><span className="text-gray-500">Response:</span> {vc.responseRate}</div>
+                                            <div><span className="text-gray-500">Avg Time:</span> {vc.avgResponse}</div>
+                                        </div>
+                                    </div>
+                                    <button className="primary-button text-xs ml-4">Submit Deck</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="text-center mt-3">
+                        <p className="text-xs text-gray-400">Access to {mockVCs.length}+ active investors</p>
+                    </div>
+                </div>
+            );
+        };
+        
+        const App = () => {
+            const [currentView, setCurrentView] = useState('main');
+            
+            return (
+                <div className="min-h-screen">
+                    <nav className="flex justify-between items-center p-3 border-b border-gray-800">
+                        <div 
+                            className="flex items-center space-x-2 cursor-pointer"
+                            onClick={() => setCurrentView('main')}
+                        >
+                            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </div>
+                            <div className="text-base font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                VentureSync
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                            <button 
+                                onClick={() => setCurrentView('founders')}
+                                className="px-2 py-1 rounded text-xs bg-gray-700 hover:bg-gray-600"
+                            >
+                                For Founders
+                            </button>
+                            <button 
+                                onClick={() => setCurrentView('vcs')}
+                                className="px-2 py-1 rounded text-xs bg-gray-700 hover:bg-gray-600"
+                            >
+                                For VCs
+                            </button>
+                            <button className="primary-button text-xs">Sign Up</button>
+                        </div>
+                    </nav>
+                    
+                    <FundingTicker />
+                    <MetricsSection />
+                    
+                    <div className="max-w-7xl mx-auto px-4 py-3">
+                        <div className="text-center mb-6">
+                            <h1 className="text-2xl font-bold mb-2">AI-Powered VC Matching Platform</h1>
+                            <p className="text-base text-gray-400">Connect founders with the right investors using multi-agent AI</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                            <PlatformDemo />
+                            <VCExperienceDemo />
+                        </div>
+                        <VCDirectory />
+                    </div>
+                </div>
+            );
+        };
+        
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
