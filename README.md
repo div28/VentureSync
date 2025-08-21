@@ -68,30 +68,27 @@ Real-time Data from AngelList, Crunchbase, TechCrunch
 Predictive Models for success scoring
 
 **Data Sources
-**
-🏢 VC Data: AngelList API, Crunchbase, portfolio analysis
+**🏢 VC Data: AngelList API, Crunchbase, portfolio analysis
 📰 Market Intel: TechCrunch, VentureBeat, GitHub trends
 💼 Hiring Signals: LinkedIn job postings, GitHub activity
 💰 Funding Data: Live funding announcements and trends
 
 **Performance Metrics
-******Success KPIs
-**
-✅ 500+ AI introductions generated (Q1 target)
+**Success KPIs
+**✅ 500+ AI introductions generated (Q1 target)
 ✅ 35% meeting acceptance rate (vs. 15% industry average)
 ✅ ≤5 days median time-to-first-meeting
 ✅ 90%+ fairness score across demographic groups
 ✅ 99.5% uptime SLA with <2s response times
 
 **User Experience
-**
-⚡ <30s AI analysis completion (95th percentile)
+**⚡ <30s AI analysis completion (95th percentile)
 🎯 >80% match compatibility for top 3 recommendations
 📱 Mobile-first design with PWA capabilities
 ♿ Accessible with screen reader support
 
-**🤖 AI Innovation
-**Multi-Agent Pipeline
+**AI Innovation
+****Multi-Agent Pipeline
 
 Thesis Extractor: Builds structured VC investment criteria
 Company Analyzer: Parses pitch decks into product/market vectors
@@ -99,14 +96,12 @@ Market Intelligence: Tracks real-time industry trends
 Bias Monitor: Ensures demographic fairness in matching
 
 **Responsible AI
-**
-Explainable Decisions: Every match includes top 5 rationale factors
+**Explainable Decisions: Every match includes top 5 rationale factors
 Bias Detection: Continuous monitoring for demographic parity
 Data Privacy: GDPR/CCPA compliant with granular consent
 Model Transparency: Public model cards and update logs
 
-**🎨 Demo Experience
-**Try the live demo with real data:
+**Demo Experience
 
 Auto-loaded Scenario: Pre-filled founder profile and deck
 Live AI Analysis: Watch Claude parse and analyze in real-time
@@ -114,22 +109,21 @@ Real VC Matches: See actual venture capital firm recommendations
 Market Intelligence: Live funding trends and hiring signals
 Interactive Workflow: Complete intro request simulation
 
-**📈 Business Impact
+**Business Impact
 **Market Opportunity
-
+**
 $1.5B+ software/services market for startup fundraising
 100K+ active US startups seeking funding
 2K+ venture capital firms needing deal flow
 3-6 months average fundraising cycle (target: <1 month)
 
 **Network Effects
-**
-More founders → Better VC insights → Higher match quality
+**More founders → Better VC insights → Higher match quality
 More VCs → Improved success rates → More founders join
 Feedback loops continuously improve AI recommendations
 
-**🏆 Next Gen Product Manager Capstone
-**This project demonstrates mastery across all 8 evaluation criteria:
+**Next Gen Product Manager Capstone**
+**This project demonstrates mastery across all 8 evaluation criteria**:
 
 🎯 Problem Framing: Clear identification of fundraising inefficiencies
 📋 Product Strategy: Multi-sided marketplace with network effects
@@ -140,7 +134,7 @@ Feedback loops continuously improve AI recommendations
 📢 Communication: Clear value proposition and user stories
 💡 Innovation: Novel multi-agent approach to VC-founder matching
 
-**🚀 Getting Started
+**Getting Started**
 **Quick Demo
 Visit venturesync.netlify.app for an instant demo with live data.
 Local Development
@@ -167,10 +161,10 @@ Rate Limits: 100 requests/hour for analysis endpoints
 Authentication: API key required for production use
 
 
-📄 License
+**License**
 This project is licensed under the MIT License - see the LICENSE.md file for details.
 
-🙏 Acknowledgments
+🙏 **Acknowledgments**
 
 Anthropic Claude for multi-agent AI capabilities
 Next Gen Product Manager course instructors and peers
